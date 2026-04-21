@@ -216,6 +216,47 @@ table.rtable tbody td { padding: 7px 12px; border-bottom: 1px solid #e8ecf0; }
 /* SECTION VISIBILITY */
 .tab-content { display: none; }
 .tab-content.active { display: block; }
+
+/* CHANGE ASSIGNEE SECTION */
+.change-assignee-wrap {
+  background: #fff8e1; border: 1px solid #ffe082; border-radius: 3px;
+  padding: 12px 16px; margin-bottom: 18px;
+}
+.change-assignee-wrap .ca-title {
+  font-size: 11px; text-transform: uppercase; color: #888;
+  letter-spacing: 1px; margin-bottom: 10px; font-weight: bold;
+}
+.ca-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ca-row label { font-size: 12px; color: #333; font-weight: bold; white-space: nowrap; }
+.ca-autocomplete { position: relative; width: 260px; }
+.ca-autocomplete input {
+  width: 100%; padding: 4px 26px 4px 8px; height: 28px;
+  border: 1px solid #ffb74d; border-radius: 2px; font-size: 12px;
+  background: #fff; outline: none;
+}
+.ca-autocomplete input:focus { border-color: #e65100; }
+.ca-autocomplete::after {
+  content: "▾"; position: absolute; right: 8px; top: 6px;
+  color: #999; font-size: 11px; pointer-events: none;
+}
+.ca-suggestions {
+  display: none; position: absolute; left: 0; right: 0; top: 30px;
+  background: #fff; border: 1px solid #ccc; border-radius: 3px;
+  z-index: 200; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 160px; overflow-y: auto;
+}
+.ca-suggestions.open { display: block; }
+.ca-sug-item {
+  padding: 7px 12px; cursor: pointer; font-size: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.ca-sug-item:hover, .ca-sug-item.active { background: #fff3e0; }
+.ca-sug-item .ca-avatar {
+  width: 22px; height: 22px; border-radius: 50%; background: #2a6496;
+  color: #fff; font-size: 10px; font-weight: bold; display: flex;
+  align-items: center; justify-content: center; flex-shrink: 0;
+}
+.btn-change-assign { background: #fff3e0; border-color: #ffb74d; color: #e65100; }
+.btn-change-assign:hover { background: #ffe0b2; }
 </style>
 </head>
 <body>
@@ -252,6 +293,7 @@ table.rtable tbody td { padding: 7px 12px; border-bottom: 1px solid #e8ecf0; }
       <li><a href="#" class="side-link"        data-tab="issueReport">Issue Report</a></li>
       <li><a href="#" class="side-link"        data-tab="assigneeView">Assignee View</a></li>
       <li><a href="#" class="side-link"        data-tab="userView">User View</a></li>
+      <li><a href="#" class="side-link"        data-tab="readOnlyView">Read Only View</a></li>
     </ul>
   </div>
 
@@ -519,6 +561,19 @@ table.rtable tbody td { padding: 7px 12px; border-bottom: 1px solid #e8ecf0; }
             </div>
           </div>
 
+          <!-- CHANGE ASSIGNEE (Assignee View) -->
+          <div class="change-assignee-wrap">
+            <div class="ca-title">Change Assignee</div>
+            <div class="ca-row">
+              <label>Assign To :</label>
+              <div class="ca-autocomplete" id="avCaWrap">
+                <input type="text" id="avCaInput" placeholder="Type to search user\u2026" autocomplete="off" oninput="caFilter('av')" onfocus="caFilter('av')" onkeydown="caKeydown(event,'av')"/>
+                <div class="ca-suggestions" id="avCaSuggestions"></div>
+              </div>
+              <button class="btn btn-change-assign" onclick="caConfirm('av')">&#8644; Change Assignee</button>
+            </div>
+          </div>
+
           <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;padding-left:30px;">Activity Log</div>
           <div class="timeline">
 
@@ -655,9 +710,21 @@ table.rtable tbody td { padding: 7px 12px; border-bottom: 1px solid #e8ecf0; }
               </div>
             </div>
             <div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee;">
-              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Case Description</span>
-              <div style="margin-top:4px;color:#444;font-size:12px;line-height:1.6;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Case Description</span>
+                <button class="btn" id="uvDescEditBtn" onclick="uvDescEdit()" style="padding:2px 10px;font-size:11px;background:#e3f2fd;border-color:#64b5f6;color:#1565c0;">&#9998; Edit</button>
+              </div>
+              <!-- READ MODE -->
+              <div id="uvDescView" style="color:#444;font-size:12px;line-height:1.6;">
                 Customer has reported an issue with invoice INV-2026-00123 regarding incorrect charges on the hotel voucher booking. Needs urgent review.
+              </div>
+              <!-- EDIT MODE (hidden by default) -->
+              <div id="uvDescEditArea" style="display:none;">
+                <textarea id="uvDescTextarea" style="width:100%;border:1px solid #2a6496;border-radius:2px;padding:7px 9px;font-size:12px;line-height:1.6;resize:vertical;height:70px;font-family:Arial,sans-serif;outline:none;">Customer has reported an issue with invoice INV-2026-00123 regarding incorrect charges on the hotel voucher booking. Needs urgent review.</textarea>
+                <div style="display:flex;gap:8px;margin-top:6px;">
+                  <button class="btn btn-save" style="padding:3px 14px;font-size:11px;" onclick="uvDescSave()">&#10003; Save</button>
+                  <button class="btn btn-clear" style="padding:3px 14px;font-size:11px;" onclick="uvDescCancel()">&#10005; Cancel</button>
+                </div>
               </div>
             </div>
           </div>
@@ -697,6 +764,19 @@ table.rtable tbody td { padding: 7px 12px; border-bottom: 1px solid #e8ecf0; }
               <input type="checkbox" disabled style="width:14px;height:14px;accent-color:#c0392b;"/>
               <span style="font-size:12px;color:#c0392b;font-weight:bold;">Not Resolved — escalate further</span>
               <span style="font-size:11px;color:#aaa;margin-left:6px;">(set by assignee)</span>
+            </div>
+          </div>
+
+          <!-- CHANGE ASSIGNEE (User View) -->
+          <div class="change-assignee-wrap">
+            <div class="ca-title">Change Assignee</div>
+            <div class="ca-row">
+              <label>Assign To :</label>
+              <div class="ca-autocomplete" id="uvCaWrap">
+                <input type="text" id="uvCaInput" placeholder="Type to search user\u2026" autocomplete="off" oninput="caFilter('uv')" onfocus="caFilter('uv')" onkeydown="caKeydown(event,'uv')"/>
+                <div class="ca-suggestions" id="uvCaSuggestions"></div>
+              </div>
+              <button class="btn btn-change-assign" onclick="caConfirm('uv')">&#8644; Change Assignee</button>
             </div>
           </div>
 
@@ -769,6 +849,149 @@ table.rtable tbody td { padding: 7px 12px; border-bottom: 1px solid #e8ecf0; }
       </div>
     </div>
 
+  <!-- ============================================================
+       TAB 5 — READ ONLY VIEW
+  ============================================================ -->
+  <div id="readOnlyView" class="tab-content">
+    <div class="content-panel">
+      <div class="tabs"><div class="tab active">Read Only View — CASE-00001</div></div>
+      <div class="history-body">
+
+        <!-- CASE DETAILS (all disabled) -->
+        <div style="background:#fff;border:1px solid #dde3ea;border-radius:3px;padding:12px 16px;margin-bottom:18px;">
+          <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;">Case Details</div>
+          <div style="display:flex;gap:30px;flex-wrap:wrap;">
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
+              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Case Number</span>
+              <span style="font-weight:bold;color:#1a3a5c;font-size:13px;">CASE-00001</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
+              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Number</span>
+              <span style="font-weight:bold;color:#1a3a5c;">INV-2026-00123</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
+              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Assigned To</span>
+              <span style="font-weight:bold;color:#1a3a5c;">Sarah Connor</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
+              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Created By</span>
+              <span style="color:#555;">nucoreadmin</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
+              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Created Date</span>
+              <span style="color:#555;">20/04/2026 09:15 AM</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
+              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Status</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:#f9a825;display:inline-block;"></span>
+                <span style="color:#f57f17;font-weight:bold;">Pending</span>
+              </span>
+            </div>
+          </div>
+          <!-- CASE DESCRIPTION (read-only textarea, disabled) -->
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee;">
+            <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Case Description</span>
+            <textarea disabled rows="3"
+              style="width:100%;margin-top:5px;border:1px solid #e0e0e0;border-radius:2px;padding:7px 9px;
+              font-size:12px;line-height:1.6;resize:none;font-family:Arial,sans-serif;
+              background:#f5f5f5;color:#555;cursor:not-allowed;">Customer has reported an issue with invoice INV-2026-00123 regarding incorrect charges on the hotel voucher booking. Needs urgent review.</textarea>
+          </div>
+        </div>
+
+        <!-- INVOICE DETAILS (disabled) -->
+        <div style="background:#fff;border:1px solid #dde3ea;border-radius:3px;padding:12px 16px;margin-bottom:18px;">
+          <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;">Invoice Details</div>
+          <div style="display:flex;gap:30px;flex-wrap:wrap;">
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
+              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Number</span>
+              <span style="font-weight:bold;color:#1a3a5c;">INV-2026-00123</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:200px;">
+              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Customer Name</span>
+              <span style="font-weight:bold;color:#1a3a5c;">Alpha Trading LLC</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
+              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Amount</span>
+              <span style="font-weight:bold;color:#1a3a5c;font-size:14px;">AED 3,250.00</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
+              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Date</span>
+              <span style="color:#555;">18/04/2026</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SOLUTION GIVEN (disabled textarea) -->
+        <div style="background:#fff;border:1px solid #dde3ea;border-radius:3px;padding:12px 16px;margin-bottom:18px;">
+          <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;">
+            Solution Given &nbsp;<span style="background:#e3f2fd;color:#1565c0;font-size:10px;padding:2px 8px;border-radius:10px;text-transform:none;letter-spacing:0;font-weight:normal;">by Assignee</span>
+          </div>
+          <textarea disabled rows="4"
+            style="width:100%;border:1px solid #e0e0e0;border-radius:2px;padding:9px 12px;
+            font-size:12px;line-height:1.6;resize:none;font-family:Arial,sans-serif;
+            background:#f5f5f5;color:#555;cursor:not-allowed;">Reviewed the hotel voucher. The extra charge was due to a late check-out fee applied by the supplier. Coordinated with supplier and issued a credit note. Invoice corrected.</textarea>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" disabled style="width:14px;height:14px;accent-color:#c0392b;"/>
+            <span style="font-size:12px;color:#c0392b;font-weight:bold;">Not Resolved &mdash; escalate further</span>
+            <span style="font-size:11px;color:#aaa;margin-left:6px;">(set by assignee)</span>
+          </div>
+        </div>
+
+        <!-- ACTIVITY LOG (read-only) -->
+        <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;padding-left:30px;">Activity Log</div>
+        <div class="timeline">
+
+          <div class="tl-item">
+            <div class="tl-dot green"></div>
+            <div class="tl-card">
+              <div class="tl-header"><span class="tl-action">Case Created</span><span class="tl-time">20/04/2026 09:15 AM</span></div>
+              <div class="tl-detail">Case <strong>CASE-00001</strong> raised for invoice <strong>INV-2026-00123</strong></div>
+              <div class="tl-by">by nucoreadmin</div>
+            </div>
+          </div>
+
+          <div class="tl-item">
+            <div class="tl-dot orange"></div>
+            <div class="tl-card">
+              <div class="tl-header"><span class="tl-action">Assigned User Changed</span><span class="tl-time">20/04/2026 10:32 AM</span></div>
+              <div class="tl-detail">Assigned from <span class="from">Jane Smith</span> &rarr; <span class="to">John Doe</span></div>
+              <div class="tl-by">by nucoreadmin</div>
+            </div>
+          </div>
+
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-card">
+              <div class="tl-header"><span class="tl-action">Description Updated</span><span class="tl-time">20/04/2026 11:05 AM</span></div>
+              <div class="tl-detail">Case description was updated</div>
+              <div class="tl-by">by John Doe</div>
+            </div>
+          </div>
+
+          <div class="tl-item">
+            <div class="tl-dot orange"></div>
+            <div class="tl-card">
+              <div class="tl-header"><span class="tl-action">Reassigned</span><span class="tl-time">20/04/2026 12:14 PM</span></div>
+              <div class="tl-detail">Assigned from <span class="from">John Doe</span> &rarr; <span class="to">Sarah Connor</span></div>
+              <div class="tl-by">by nucoreadmin</div>
+            </div>
+          </div>
+
+          <div class="tl-item">
+            <div class="tl-dot green"></div>
+            <div class="tl-card">
+              <div class="tl-header"><span class="tl-action">Status Changed</span><span class="tl-time">20/04/2026 03:45 PM</span></div>
+              <div class="tl-detail">Status changed from <span class="from">Pending</span> &rarr; <span class="to">Completed</span></div>
+              <div class="tl-by">by Sarah Connor</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
   </div><!-- end #main -->
 </div><!-- end #wrap -->
 
@@ -784,7 +1007,7 @@ table.rtable tbody td { padding: 7px 12px; border-bottom: 1px solid #e8ecf0; }
       document.getElementById(tab).classList.add('active');
       document.getElementById('raiseCaseBtns').style.display = (tab === 'raiseCase')   ? 'flex' : 'none';
       document.getElementById('reportBtns').style.display    = (tab === 'issueReport') ? 'flex' : 'none';
-      document.getElementById('historyBtns').style.display   = (tab === 'assigneeView' || tab === 'userView') ? 'flex' : 'none';
+      document.getElementById('historyBtns').style.display   = (tab === 'assigneeView' || tab === 'userView' || tab === 'readOnlyView') ? 'flex' : 'none';
     });
   });
 
@@ -821,7 +1044,135 @@ table.rtable tbody td { padding: 7px 12px; border-bottom: 1px solid #e8ecf0; }
         dd.classList.remove('open');
       });
     }
+    // Close autocomplete suggestions on outside click
+    if (!e.target.closest('.ca-autocomplete')) {
+      document.querySelectorAll('.ca-suggestions').forEach(function(s) {
+        s.classList.remove('open');
+      });
+    }
   });
+
+  // ── CHANGE ASSIGNEE AUTOCOMPLETE ─────────────────────────────
+  var CA_USERS = [
+    { name: 'John Doe',      initials: 'JD' },
+    { name: 'Jane Smith',    initials: 'JS' },
+    { name: 'Sarah Connor',  initials: 'SC' },
+    { name: 'nucoreadmin',   initials: 'NA' },
+    { name: 'Counter Staff', initials: 'CS' },
+    { name: 'Ahmed Al Mansoori', initials: 'AA' },
+    { name: 'Priya Nair',    initials: 'PN' },
+    { name: 'Ravi Kumar',    initials: 'RK' }
+  ];
+  var caSelected = { av: '', uv: '' };
+  var caHighlight = { av: -1, uv: -1 };
+
+  function caGetFiltered(prefix) {
+    var q = prefix.trim().toLowerCase();
+    if (!q) return CA_USERS;
+    return CA_USERS.filter(function(u) { return u.name.toLowerCase().indexOf(q) !== -1; });
+  }
+
+  function caRender(prefix, users) {
+    var sug = document.getElementById(prefix + 'CaSuggestions');
+    sug.innerHTML = '';
+    caHighlight[prefix] = -1;
+    if (!users.length) {
+      sug.classList.remove('open');
+      return;
+    }
+    users.forEach(function(u, i) {
+      var item = document.createElement('div');
+      item.className = 'ca-sug-item';
+      item.innerHTML = '<div class=ca-avatar>' + u.initials + '</div>' + u.name;
+      item.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        caPickUser(prefix, u.name);
+      });
+      sug.appendChild(item);
+    });
+    sug.classList.add('open');
+  }
+
+  function caFilter(prefix) {
+    var val = document.getElementById(prefix + 'CaInput').value;
+    var filtered = caGetFiltered(val);
+    caRender(prefix, filtered);
+  }
+
+  function caPickUser(prefix, name) {
+    document.getElementById(prefix + 'CaInput').value = name;
+    caSelected[prefix] = name;
+    document.getElementById(prefix + 'CaSuggestions').classList.remove('open');
+  }
+
+  function caKeydown(e, prefix) {
+    var sug = document.getElementById(prefix + 'CaSuggestions');
+    var items = sug.querySelectorAll('.ca-sug-item');
+    if (!sug.classList.contains('open') || !items.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      caHighlight[prefix] = Math.min(caHighlight[prefix] + 1, items.length - 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      caHighlight[prefix] = Math.max(caHighlight[prefix] - 1, 0);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (caHighlight[prefix] >= 0) {
+        items[caHighlight[prefix]].dispatchEvent(new MouseEvent('mousedown'));
+      }
+      return;
+    } else if (e.key === 'Escape') {
+      sug.classList.remove('open');
+      return;
+    }
+    items.forEach(function(it, i) {
+      it.classList.toggle('active', i === caHighlight[prefix]);
+    });
+    if (caHighlight[prefix] >= 0) items[caHighlight[prefix]].scrollIntoView({ block: 'nearest' });
+  }
+
+  function caConfirm(prefix) {
+    var val = document.getElementById(prefix + 'CaInput').value.trim();
+    if (!val) { alert('Please select a user to assign.'); return; }
+    alert('Assignee changed to: ' + val);
+    // In real use: send AJAX call here
+  }
+
+  // ── USER VIEW — DESCRIPTION EDIT ─────────────────────────────
+  function uvDescEdit() {
+    var view = document.getElementById('uvDescView');
+    var editArea = document.getElementById('uvDescEditArea');
+    var textarea = document.getElementById('uvDescTextarea');
+    var btn = document.getElementById('uvDescEditBtn');
+    textarea.value = view.innerText.trim();
+    view.style.display = 'none';
+    editArea.style.display = 'block';
+    btn.style.display = 'none';
+    textarea.focus();
+  }
+
+  function uvDescSave() {
+    var view = document.getElementById('uvDescView');
+    var editArea = document.getElementById('uvDescEditArea');
+    var textarea = document.getElementById('uvDescTextarea');
+    var btn = document.getElementById('uvDescEditBtn');
+    var val = textarea.value.trim();
+    if (!val) { alert('Description cannot be empty.'); return; }
+    view.innerText = val;
+    view.style.display = 'block';
+    editArea.style.display = 'none';
+    btn.style.display = '';
+    // In real use: send AJAX call here
+  }
+
+  function uvDescCancel() {
+    var view = document.getElementById('uvDescView');
+    var editArea = document.getElementById('uvDescEditArea');
+    var btn = document.getElementById('uvDescEditBtn');
+    view.style.display = 'block';
+    editArea.style.display = 'none';
+    btn.style.display = '';
+  }
 </script>
 </body>
 </html>
