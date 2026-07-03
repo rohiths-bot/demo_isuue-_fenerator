@@ -1,1178 +1,1763 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<title>Issue Tracker — TRAACS Mockup</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRAACS — PHP 8.4 Migration + UI Test Automation Plan</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: Arial, sans-serif; font-size: 12px; background: #e8e8e8; color: #333; }
+  :root {
+    --surface-1:      #ffffff;
+    --page:           #ffffff;
+    --text-primary:   #0e1726;
+    --text-secondary: #45526b;
+    --text-muted:     #7a8699;
+    --grid:           #e2eaf5;
+    --baseline:       #b9c9e2;
+    --border:         rgba(28,92,171,0.16);
+    --series-1:       #2a78d6;   /* single chart hue (validated on #ffffff) */
+    --st-good:        #0ca30c;
+    --st-warning:     #fab219;
+    --st-serious:     #ec835a;
+    --st-critical:    #d03b3b;
+    --accent-wash:    rgba(42,120,214,0.08);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 32px 24px 80px; }
 
-/* ── TOP HEADER ─────────────────────────────── */
-#topHeader {
-  background: #1a3a5c;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  justify-content: space-between;
-}
-#topHeader .logo { display: flex; align-items: center; gap: 10px; }
-#topHeader .logo .logo-box {
-  display: inline-block; width: 38px; height: 38px; background: #fff;
-  border-radius: 4px; font-size: 9px; color: #1a3a5c;
-  text-align: center; line-height: 38px; font-weight: bold;
-}
-#topHeader .company-name { color: #fff; font-size: 13px; font-weight: bold; }
-#topHeader .top-right { color: #cdd9e5; font-size: 11px; display: flex; align-items: center; gap: 14px; }
+  header.doc {
+    border-bottom: 1px solid var(--grid);
+    padding-bottom: 20px; margin-bottom: 8px;
+  }
+  header.doc h1 { font-size: 26px; margin: 0 0 6px; }
+  .meta { color: var(--text-secondary); font-size: 13.5px; }
+  .meta b { color: var(--text-primary); }
+  .badge {
+    display: inline-block; font-size: 12px; font-weight: 600;
+    padding: 2px 10px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--accent-wash);
+    color: var(--text-primary); margin-left: 8px; vertical-align: 1px;
+  }
 
-/* ── TOP NAV ─────────────────────────────────── */
-#topNav {
-  background: #2c5282; height: 32px;
-  display: flex; align-items: stretch; padding: 0 14px;
-}
-#topNav a {
-  color: #c8d8ea; text-decoration: none; font-size: 12px;
-  padding: 0 16px; display: flex; align-items: center;
-  border-bottom: 3px solid transparent;
-}
-#topNav a:hover { background: rgba(255,255,255,0.08); }
-#topNav a.active { color: #fff; border-bottom: 3px solid #63b3ed; font-weight: bold; }
+  /* ---- tabs ---- */
+  .tabs {
+    display: flex; gap: 8px; margin: 18px 0 0; padding: 8px 0 0;
+    border-bottom: 2px solid var(--grid);
+    position: sticky; top: 0; background: var(--page); z-index: 20;
+  }
+  .tabs button {
+    appearance: none; font: inherit; cursor: pointer;
+    border: 1px solid var(--border); border-bottom: none;
+    background: var(--surface-1); color: var(--text-secondary);
+    font-weight: 600; font-size: 14px; padding: 10px 18px;
+    border-radius: 8px 8px 0 0;
+  }
+  .tabs button.active {
+    color: var(--text-primary); background: var(--page);
+    border-color: var(--grid);
+    box-shadow: 0 2px 0 var(--page);
+  }
+  .tab { display: none; padding-top: 8px; }
+  .tab.active { display: block; }
+  .tab-note { font-size: 12.5px; color: var(--text-muted); margin: 10px 0 0; }
 
-/* ── LAYOUT ──────────────────────────────────── */
-#wrap { display: flex; min-height: calc(100vh - 82px); }
+  h2 {
+    font-size: 19px; margin: 40px 0 12px;
+    padding-top: 18px; border-top: 1px solid var(--grid);
+  }
+  h2 .no { color: var(--text-muted); font-weight: 600; margin-right: 8px; }
+  h3 { font-size: 15.5px; margin: 22px 0 8px; }
+  p  { margin: 8px 0; color: var(--text-primary); }
+  .sub { color: var(--text-secondary); }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.9em; background: var(--accent-wash);
+    padding: 1px 5px; border-radius: 4px;
+  }
+  td code { overflow-wrap: anywhere; word-break: break-word; }
+  ul, ol { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
 
-/* ── LEFT SIDEBAR ────────────────────────────── */
-#sidebar { width: 155px; background: #1e3a5a; flex-shrink: 0; }
-#sidebar .sidebar-heading {
-  color: #8ab4d4; font-size: 10px; text-transform: uppercase;
-  letter-spacing: 1px; padding: 10px 12px 6px;
-}
-#sidebar ul { list-style: none; }
-#sidebar ul li a {
-  display: block; color: #c8daea; text-decoration: none;
-  padding: 8px 12px; font-size: 12px; border-left: 3px solid transparent;
-}
-#sidebar ul li a:hover { background: rgba(255,255,255,0.07); }
-#sidebar ul li a.active { background: #2a6496; border-left: 3px solid #63b3ed; color: #fff; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 20px 0; }
+  .tile {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .tile .v { font-size: 26px; font-weight: 700; line-height: 1.15; }
+  .tile .l { font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; }
 
-/* ── MAIN AREA ───────────────────────────────── */
-#main { flex: 1; padding: 12px 16px; }
+  .callout {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-left: 4px solid var(--series-1);
+    border-radius: 8px; padding: 14px 18px; margin: 16px 0;
+  }
+  .callout.gate { border-left-color: var(--st-critical); }
 
-/* PAGE TITLE BAR */
-.page-title-bar {
-  display: flex; justify-content: space-between;
-  align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;
-}
-.page-title-bar h2 { font-size: 15px; color: #1a3a5c; font-weight: bold; }
-.btn-bar { display: flex; gap: 6px; align-items: center; }
+  table {
+    width: 100%; border-collapse: collapse; margin: 14px 0;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden; font-size: 14px;
+  }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
-/* BUTTONS */
-.btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 14px; border: 1px solid #aaa; border-radius: 3px;
-  font-size: 12px; cursor: pointer; background: #f0f0f0; color: #333;
-}
-.btn:hover { opacity: 0.85; }
-.btn-save   { background: #e8f5e9; border-color: #81c784; color: #2e7d32; }
-.btn-new    { background: #e3f2fd; border-color: #64b5f6; color: #1565c0; }
-.btn-search { background: #e3f2fd; border-color: #64b5f6; color: #1565c0; }
-.btn-clear  { background: #f5f5f5; border-color: #bbb; color: #555; }
-.btn-reassign { background: #fff3e0; border-color: #ffb74d; color: #e65100; }
+  .status { font-weight: 600; white-space: nowrap; }
+  .status .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; }
+  .st-critical .dot { background: var(--st-critical); }
+  .st-serious  .dot { background: var(--st-serious); }
+  .st-warning  .dot { background: var(--st-warning); }
+  .st-good     .dot { background: var(--st-good); }
 
-/* STATUS BADGE BUTTON */
-.status-wrap { position: relative; }
-.status-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 12px; border-radius: 12px; cursor: pointer;
-  font-size: 12px; font-weight: bold; border: 2px solid;
-  user-select: none;
-}
-.status-btn.pending  { background: #fff8e1; border-color: #f9a825; color: #f57f17; }
-.status-btn.completed { background: #e8f5e9; border-color: #43a047; color: #1b5e20; }
-.status-btn .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  display: inline-block;
-}
-.status-btn.pending  .dot { background: #f9a825; }
-.status-btn.completed .dot { background: #43a047; }
-.status-btn .arrow { font-size: 10px; color: #aaa; }
+  .viz-root {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px 20px 14px; margin: 16px 0;
+  }
+  .viz-root .viz-title { font-size: 14px; font-weight: 600; margin: 0 0 2px; }
+  .viz-root .viz-sub { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 14px; }
 
-/* STATUS DROPDOWN */
-.status-dropdown {
-  display: none; position: absolute; right: 0; top: 34px;
-  background: #fff; border: 1px solid #ccc; border-radius: 4px;
-  min-width: 160px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-.status-dropdown.open { display: block; }
-.status-dropdown .sd-item {
-  padding: 8px 14px; cursor: pointer; display: flex;
-  align-items: center; gap: 8px; font-size: 12px;
-}
-.status-dropdown .sd-item:hover { background: #f0f4f8; }
-.sd-dot { width: 9px; height: 9px; border-radius: 50%; }
-.sd-pending   { background: #f9a825; }
-.sd-completed { background: #43a047; }
+  .gantt { position: relative; }
+  .g-grid { position: absolute; top: 0; bottom: 22px; left: 170px; right: 8px; }
+  .g-grid i { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--grid); }
+  .g-gate {
+    position: absolute; top: -6px; bottom: 0; width: 2px;
+    background: var(--st-critical); opacity: 0.85;
+  }
+  .g-gate span {
+    position: absolute; top: -16px; left: 6px; font-size: 11px; font-weight: 700;
+    color: var(--st-critical); white-space: nowrap;
+  }
+  .g-row { display: flex; align-items: center; height: 34px; position: relative; }
+  .g-label {
+    width: 170px; flex: 0 0 170px; font-size: 12.5px; color: var(--text-secondary);
+    padding-right: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .g-track { position: relative; flex: 1; height: 100%; margin-right: 8px; }
+  .g-bar {
+    position: absolute; top: 8px; height: 16px;
+    background: var(--series-1); border-radius: 4px;
+    border: 2px solid var(--surface-1);
+    cursor: default;
+  }
+  .g-axis { display: flex; margin-left: 170px; margin-right: 8px; height: 22px; }
+  .g-axis span { flex: 1; font-size: 11px; color: var(--text-muted); }
 
-/* CONTENT PANEL */
-.content-panel {
-  background: #fff; border: 1px solid #c0c8d4; border-radius: 3px;
-}
+  .e-row { display: flex; align-items: center; height: 30px; }
+  .e-label {
+    width: 220px; flex: 0 0 220px; font-size: 12.5px; color: var(--text-secondary);
+    padding-right: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .e-track { position: relative; flex: 1; height: 100%; border-left: 1px solid var(--baseline); }
+  .e-bar {
+    position: absolute; top: 7px; left: 0; height: 14px;
+    background: var(--series-1); border-radius: 0 4px 4px 0;
+    border-top: 2px solid var(--surface-1); border-bottom: 2px solid var(--surface-1);
+    cursor: default;
+  }
+  .e-val {
+    position: absolute; top: 5px; font-size: 12px; font-weight: 600;
+    color: var(--text-primary); white-space: nowrap;
+  }
 
-/* TABS */
-.tabs { display: flex; border-bottom: 1px solid #c0c8d4; background: #eef2f7; }
-.tab {
-  padding: 8px 20px; font-size: 12px; cursor: pointer;
-  color: #555; border-right: 1px solid #c0c8d4; border-bottom: 2px solid transparent;
-}
-.tab:hover { background: #e0e8f0; }
-.tab.active { background: #fff; border-bottom: 2px solid #2a6496; color: #1a3a5c; font-weight: bold; }
+  .tip {
+    display: none; position: absolute; z-index: 5; bottom: 26px; left: 0;
+    background: var(--text-primary); color: var(--page);
+    font-size: 12px; line-height: 1.4; padding: 6px 10px; border-radius: 6px;
+    white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.25); pointer-events: none;
+  }
+  .tip b { display: block; }
+  .g-bar:hover .tip, .e-bar:hover .tip { display: block; }
 
-/* FORM BODY */
-.form-body { padding: 16px 20px; background: #f5f8fc; min-height: 360px; }
-.form-row { display: flex; align-items: center; margin-bottom: 8px; gap: 14px; flex-wrap: wrap; }
-.field-pair { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 260px; }
-.field-pair label { width: 130px; text-align: right; font-size: 12px; color: #333; flex-shrink: 0; }
-.field-pair label .req { color: #c0392b; }
-.field-pair input[type=text],
-.field-pair textarea,
-.field-pair select {
-  flex: 1; border: 1px solid #b0bec5; padding: 4px 7px;
-  font-size: 12px; border-radius: 2px; background: #fff; height: 26px;
-}
-.field-pair input[readonly] { background: #eceff1; color: #666; }
-.field-pair textarea { height: 60px; resize: vertical; }
-.field-pair input:focus, .field-pair textarea:focus { border-color: #2a6496; outline: none; }
-.autocomplete-wrap { flex: 1; position: relative; }
-.autocomplete-wrap input {
-  width: 100%; padding: 4px 22px 4px 7px; height: 26px;
-  border: 1px solid #b0bec5; border-radius: 2px; font-size: 12px;
-}
-.autocomplete-wrap::after { content: "▾"; position: absolute; right: 7px; top: 5px; color: #999; font-size: 11px; pointer-events: none; }
-.autocomplete-wrap input:focus { border-color: #2a6496; outline: none; }
+  details {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 8px; margin: 8px 0; padding: 0;
+  }
+  details summary {
+    cursor: pointer; font-weight: 600; padding: 12px 16px; font-size: 14.5px;
+    list-style-position: inside;
+  }
+  details[open] summary { border-bottom: 1px solid var(--grid); }
+  details .a { padding: 10px 18px 14px; color: var(--text-primary); font-size: 14px; }
+  details .a p { margin: 6px 0; }
 
-/* FORM FOOTER */
-.form-footer {
-  display: flex; justify-content: space-between; padding: 8px 20px;
-  border-top: 1px solid #dde3ea; font-size: 11px; color: #777; background: #f0f4f8;
-}
+  footer {
+    margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--grid);
+    color: var(--text-muted); font-size: 12.5px;
+  }
 
-/* FILTER BAR */
-.filter-area { background: #f0f4f8; border-bottom: 1px solid #dde3ea; padding: 10px 16px; }
-.filter-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
-.f-grp { display: flex; flex-direction: column; gap: 3px; }
-.f-grp label { font-size: 11px; color: #555; font-weight: bold; }
-.f-grp input {
-  border: 1px solid #b0bec5; padding: 4px 7px;
-  font-size: 12px; border-radius: 2px; height: 26px; width: 160px;
-}
-.f-grp input:focus { border-color: #2a6496; outline: none; }
+  @media print {
+    #chatFab, #chatPanel { display: none !important; }
+    body { background: #fff; }
+    .wrap { max-width: none; padding: 0; }
+    .tip, .hover-hint { display: none !important; }
+    .tabs, .menubar, .sidenav { display: none !important; }
+    .demo-shell { display: none; }
+    .tab { display: block; break-before: page; }
+    .tab:first-of-type { break-before: auto; }
+    .tab::before {
+      content: attr(data-print-title);
+      display: block; font-size: 22px; font-weight: 700;
+      margin: 8px 0 4px; padding-bottom: 8px; border-bottom: 2px solid var(--grid);
+    }
+    h2 { break-after: avoid; }
+    table { break-inside: auto; }
+    tr, .viz-root, details { break-inside: avoid; }
+  }
 
-/* REPORT TABLE */
-table.rtable { width: 100%; border-collapse: collapse; font-size: 12px; }
-table.rtable thead th {
-  background: #2c5282; color: #fff; padding: 7px 12px;
-  text-align: left; font-size: 11px; font-weight: bold;
-}
-table.rtable tbody tr:nth-child(even) { background: #f5f8fc; }
-table.rtable tbody tr:hover { background: #ddeeff; }
-table.rtable tbody td { padding: 7px 12px; border-bottom: 1px solid #e8ecf0; }
-.tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; background: #dbeafe; color: #1d4ed8; }
-.tag-pending   { background: #fff8e1; color: #f57f17; }
-.tag-completed { background: #e8f5e9; color: #2e7d32; }
+  /* ---- menubar with dropdown submenus ---- */
+  .menubar {
+    display: flex; gap: 4px; margin: 18px 0 0; padding: 8px 0 0;
+    border-bottom: 2px solid var(--grid);
+    position: sticky; top: 0; background: var(--page); z-index: 30;
+  }
+  .menu { position: relative; }
+  .menu > button {
+    appearance: none; font: inherit; cursor: pointer;
+    border: 1px solid var(--border); border-bottom: none;
+    background: var(--surface-1); color: var(--text-secondary);
+    font-weight: 600; font-size: 14px; padding: 10px 16px;
+    border-radius: 8px 8px 0 0;
+  }
+  .menu > button::after { content: " ▾"; font-size: 10px; color: var(--text-muted); }
+  .menu.active > button { color: var(--text-primary); background: var(--page); border-color: var(--grid); }
+  .menu .dd {
+    display: none; position: absolute; top: 100%; left: 0; min-width: 300px;
+    max-height: 65vh; overflow-y: auto;
+    background: var(--surface-1); border: 1px solid var(--grid);
+    border-radius: 0 8px 8px 8px; box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+    padding: 6px; z-index: 31;
+  }
+  .menu:hover .dd, .menu.open .dd { display: block; }
+  .dd a {
+    display: block; padding: 7px 10px; border-radius: 6px;
+    font-size: 13.5px; color: var(--text-primary); text-decoration: none; font-weight: 500;
+  }
+  .dd a:hover { background: var(--accent-wash); }
+  .dd a.demo-link { font-weight: 700; color: var(--series-1); }
+  h2 { scroll-margin-top: 70px; }
 
-/* ── HISTORY TIMELINE ────────────────────────── */
-.history-body { padding: 16px 20px; background: #f5f8fc; min-height: 360px; }
-.timeline { position: relative; padding-left: 30px; }
-.timeline::before {
-  content: '';
-  position: absolute; left: 10px; top: 0; bottom: 0;
-  width: 2px; background: #c8d8ea;
-}
-.tl-item { position: relative; margin-bottom: 18px; }
-.tl-dot {
-  position: absolute; left: -24px; top: 4px;
-  width: 12px; height: 12px; border-radius: 50%;
-  border: 2px solid #fff; box-shadow: 0 0 0 2px #2a6496;
-  background: #2a6496;
-}
-.tl-dot.green  { background: #43a047; box-shadow: 0 0 0 2px #43a047; }
-.tl-dot.orange { background: #f9a825; box-shadow: 0 0 0 2px #f9a825; }
-.tl-dot.red    { background: #e53935; box-shadow: 0 0 0 2px #e53935; }
-.tl-dot.grey   { background: #90a4ae; box-shadow: 0 0 0 2px #90a4ae; }
+  /* ---- live demo panel ---- */
+  .demo-shell { background: #101418; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin: 16px 0; }
+  .demo-bar { display: flex; align-items: center; gap: 7px; padding: 9px 12px; background: #1b222a; }
+  .demo-bar .dot2 { width: 11px; height: 11px; border-radius: 50%; flex: 0 0 auto; }
+  .demo-title { color: #9fb2c3; font-size: 12.5px; margin-left: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .demo-controls { margin-left: auto; display: flex; gap: 8px; flex: 0 0 auto; }
+  .demo-controls button {
+    font: 600 12px system-ui, sans-serif; cursor: pointer;
+    background: #26303a; color: #cfe3f5; border: 1px solid #3a4854;
+    border-radius: 6px; padding: 4px 12px;
+  }
+  .demo-controls button:hover { background: #31404d; }
+  .demo-flows { display: flex; gap: 8px; padding: 10px 12px; background: #141a20; border-bottom: 1px solid #232c35; }
+  .flow-chip {
+    font: 600 12px ui-monospace, Menlo, Consolas, monospace;
+    padding: 4px 12px; border-radius: 999px;
+    border: 1px solid #2c3742; color: #8fa1b3; background: transparent;
+  }
+  .flow-chip.running { color: #f2c94c; border-color: #6b5c22; }
+  .flow-chip.pass { color: #3fd68f; border-color: #2c5c45; }
+  .flow-chip.pass::before { content: "✓ "; }
+  .demo-log {
+    height: 340px; overflow-y: auto; padding: 12px 16px;
+    font: 12.5px/1.75 ui-monospace, Menlo, Consolas, monospace;
+    color: #c7d2dc;
+  }
+  .demo-log div { white-space: pre-wrap; }
+  .demo-log .hdr  { color: #ffffff; font-weight: 700; margin-top: 6px; }
+  .demo-log .act  { color: #7fb5f2; }
+  .demo-log .ok   { color: #3fd68f; }
+  .demo-log .dim  { color: #77848f; }
+  /* white + blue theme accents */
+  header.doc h1 { color: #123f7c; }
+  h2 { color: #1c5cab; }
+  th { background: #f0f5fc; }
+  .tile .v { color: #1c5cab; }
+  .tile, .callout, .viz-root, table, details { box-shadow: 0 1px 3px rgba(28,92,171,0.06); }
 
-.tl-card {
-  background: #fff; border: 1px solid #dde3ea;
-  border-radius: 3px; padding: 10px 14px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-}
-.tl-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
-.tl-action { font-weight: bold; color: #1a3a5c; font-size: 12px; }
-.tl-time   { font-size: 11px; color: #999; }
-.tl-detail { font-size: 12px; color: #555; }
-.tl-detail .from { color: #e53935; text-decoration: line-through; }
-.tl-detail .to   { color: #2e7d32; font-weight: bold; }
-.tl-by { font-size: 11px; color: #999; margin-top: 3px; }
+  /* ---- side-menu layout ---- */
+  @media print { .layout { display: block; } }
+  .layout { display: flex; gap: 24px; align-items: flex-start; }
+  .sidenav {
+    position: sticky; top: 62px; flex: 0 0 252px; width: 252px;
+    max-height: calc(100vh - 90px); overflow-y: auto;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px; margin-top: 18px;
+    box-shadow: 0 1px 3px rgba(28,92,171,0.06);
+  }
+  .sidenav .sn-title {
+    font-size: 11.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--text-muted); padding: 6px 10px 4px;
+  }
+  .sidenav a {
+    display: block; padding: 6px 10px; border-radius: 6px; font-size: 13px;
+    color: var(--text-secondary); text-decoration: none;
+    border-left: 3px solid transparent;
+  }
+  .sidenav a:hover { background: var(--accent-wash); color: var(--text-primary); }
+  .sidenav a.current { color: #1c5cab; font-weight: 600; background: var(--accent-wash); border-left-color: var(--series-1); }
+  .sidenav a.demo-link { font-weight: 700; color: var(--series-1); }
+  .content { flex: 1; min-width: 0; max-width: 980px; }
+  @media (max-width: 900px) { .sidenav { display: none; } }
 
-/* SECTION VISIBILITY */
-.tab-content { display: none; }
-.tab-content.active { display: block; }
+  /* ---- demo: split view (mock browser + terminal) ---- */
+  .demo-split { display: flex; align-items: stretch; }
+  .demo-view { flex: 0 0 55%; display: flex; flex-direction: column; background: #f4f7fb; border-right: 1px solid #232c35; }
+  .demo-urlbar {
+    font: 11.5px ui-monospace, Menlo, Consolas, monospace; color: #3b4b63;
+    background: #eef2f8; border-bottom: 1px solid #d7e0ee; padding: 6px 10px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .demo-urlbar::before { content: "🔒 "; font-size: 10px; }
+  .demo-screen { flex: 1; padding: 12px 14px; overflow-y: auto; position: relative; min-height: 340px; }
+  .demo-screen .idle { font: 12px system-ui; color: #8595ac; padding-top: 40px; text-align: center; }
+  .mtitle { font: 700 12.5px system-ui; color: #123f7c; margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid #d7e0ee; }
+  .mf { display: flex; align-items: center; gap: 6px; margin: 5px 0; }
+  .ml { font: 11px system-ui; color: #5a6b85; width: 108px; flex: 0 0 108px; text-align: right; }
+  .mi {
+    flex: 1; min-height: 20px; background: #ffffff; border: 1px solid #c9d6ea; border-radius: 4px;
+    font: 11.5px ui-monospace, Menlo, Consolas, monospace; color: #12233f; padding: 2px 7px;
+  }
+  .mi.filled { border-color: #2a78d6; background: #f4f9ff; }
+  .mbtn {
+    display: inline-block; margin-top: 10px; font: 600 11.5px system-ui;
+    background: #2a78d6; color: #ffffff; border-radius: 5px; padding: 5px 16px;
+  }
+  .mbtn.clicked { background: #12508f; box-shadow: 0 0 0 3px rgba(42,120,214,0.30); }
+  .mtoast {
+    position: absolute; top: 10px; right: 10px; background: #0ca30c; color: #ffffff;
+    font: 600 11px system-ui; padding: 6px 11px; border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25); max-width: 65%;
+  }
+  .mgrid { margin-top: 8px; border: 1px solid #c9d6ea; border-radius: 4px; background: #ffffff; font: 11px ui-monospace, monospace; overflow: hidden; }
+  .mgrid .mgh { display: flex; background: #eef2f8; border-bottom: 1px solid #d7e0ee; font-weight: 700; color: #3b4b63; }
+  .mgrid .mgr { display: flex; }
+  .mgrid span { flex: 1; padding: 3px 7px; border-right: 1px solid #e4ebf5; min-height: 18px; }
+  .mgrid span:last-child { border-right: none; }
+  .msect { font: 700 10.5px system-ui; color: #5a6b85; text-transform: uppercase; letter-spacing: .04em; margin: 10px 0 2px; }
+  .dash { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dash div { background: #ffffff; border: 1px solid #c9d6ea; border-radius: 6px; padding: 10px; font: 11px system-ui; color: #3b4b63; }
+  .dash b { display: block; font-size: 14px; color: #123f7c; }
+  @media (max-width: 820px) {
+    .demo-split { flex-direction: column; }
+    .demo-view { border-right: none; border-bottom: 1px solid #232c35; }
+  }
 
-/* CHANGE ASSIGNEE SECTION */
-.change-assignee-wrap {
-  background: #fff8e1; border: 1px solid #ffe082; border-radius: 3px;
-  padding: 12px 16px; margin-bottom: 18px;
-}
-.change-assignee-wrap .ca-title {
-  font-size: 11px; text-transform: uppercase; color: #888;
-  letter-spacing: 1px; margin-bottom: 10px; font-weight: bold;
-}
-.ca-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.ca-row label { font-size: 12px; color: #333; font-weight: bold; white-space: nowrap; }
-.ca-autocomplete { position: relative; width: 260px; }
-.ca-autocomplete input {
-  width: 100%; padding: 4px 26px 4px 8px; height: 28px;
-  border: 1px solid #ffb74d; border-radius: 2px; font-size: 12px;
-  background: #fff; outline: none;
-}
-.ca-autocomplete input:focus { border-color: #e65100; }
-.ca-autocomplete::after {
-  content: "▾"; position: absolute; right: 8px; top: 6px;
-  color: #999; font-size: 11px; pointer-events: none;
-}
-.ca-suggestions {
-  display: none; position: absolute; left: 0; right: 0; top: 30px;
-  background: #fff; border: 1px solid #ccc; border-radius: 3px;
-  z-index: 200; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 160px; overflow-y: auto;
-}
-.ca-suggestions.open { display: block; }
-.ca-sug-item {
-  padding: 7px 12px; cursor: pointer; font-size: 12px;
-  display: flex; align-items: center; gap: 8px;
-}
-.ca-sug-item:hover, .ca-sug-item.active { background: #fff3e0; }
-.ca-sug-item .ca-avatar {
-  width: 22px; height: 22px; border-radius: 50%; background: #2a6496;
-  color: #fff; font-size: 10px; font-weight: bold; display: flex;
-  align-items: center; justify-content: center; flex-shrink: 0;
-}
-.btn-change-assign { background: #fff3e0; border-color: #ffb74d; color: #e65100; }
-.btn-change-assign:hover { background: #ffe0b2; }
+  /* ---- chat widget ---- */
+  #chatFab {
+    position: fixed; right: 22px; bottom: 22px; z-index: 60;
+    width: 54px; height: 54px; border-radius: 50%;
+    background: var(--series-1); color: #fff; font-size: 24px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: 0 4px 14px rgba(28,92,171,0.35);
+    user-select: none;
+  }
+  #chatFab:hover { background: #1c5cab; }
+  #chatPanel {
+    display: none; position: fixed; right: 22px; bottom: 88px; z-index: 60;
+    width: 372px; max-width: calc(100vw - 40px); height: 480px; max-height: calc(100vh - 130px);
+    background: #ffffff; border: 1px solid var(--grid); border-radius: 12px;
+    box-shadow: 0 12px 36px rgba(16,42,80,0.22);
+    flex-direction: column; overflow: hidden;
+  }
+  #chatPanel.openc { display: flex; }
+  .ch-head {
+    background: var(--series-1); color: #fff; font-weight: 700; font-size: 14px;
+    padding: 10px 14px; display: flex; align-items: center;
+  }
+  .ch-head .sub2 { font-weight: 400; font-size: 11px; opacity: .85; margin-left: 8px; }
+  #chatClose { margin-left: auto; cursor: pointer; font-weight: 400; padding: 0 2px; }
+  .ch-msgs { flex: 1; overflow-y: auto; padding: 12px; background: #f6f9fd; }
+  .ch-m { max-width: 86%; margin: 6px 0; padding: 8px 11px; border-radius: 10px; font-size: 13px; line-height: 1.5; }
+  .ch-m.bot { background: #ffffff; border: 1px solid var(--grid); color: var(--text-primary); border-bottom-left-radius: 3px; }
+  .ch-m.user { background: var(--series-1); color: #fff; margin-left: auto; border-bottom-right-radius: 3px; }
+  .ch-m a { color: #1c5cab; font-weight: 600; text-decoration: none; }
+  .ch-m a:hover { text-decoration: underline; }
+  .ch-m .golink { display: inline-block; margin-top: 5px; }
+  .ch-sugg { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--grid); background: #fff; }
+  .ch-sugg span {
+    font-size: 11.5px; font-weight: 600; color: #1c5cab; background: var(--accent-wash);
+    border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; cursor: pointer;
+  }
+  .ch-sugg span:hover { background: rgba(42,120,214,0.16); }
+  .ch-in { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--grid); background: #fff; }
+  .ch-in input {
+    flex: 1; font: 13px system-ui, sans-serif; color: var(--text-primary);
+    border: 1px solid var(--baseline); border-radius: 8px; padding: 8px 10px; outline: none;
+  }
+  .ch-in input:focus { border-color: var(--series-1); }
+  .ch-in button {
+    font: 600 13px system-ui, sans-serif; background: var(--series-1); color: #fff;
+    border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer;
+  }
+  .ch-in button:hover { background: #1c5cab; }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<!-- TOP HEADER -->
-<div id="topHeader">
-  <div class="logo">
-    <div class="logo-box">T7</div>
-    <span class="company-name">Nucore Travel &amp; Tourism Company Ltd.</span>
+<header class="doc">
+  <h1>TRAACS — PHP 8.4 Migration + UI Test Automation</h1>
+  <div class="meta">
+    Combined program plan · 2 Jul 2026 · For <b>Team Lead &amp; Management review</b>
+    <span class="badge">Migration: pending Phase 0 go/no-go</span>
+    <span class="badge">Automation: plan ready, build not started</span>
+    <span class="badge">PRISM: foundation complete — optimising</span>
   </div>
-  <div class="top-right">
-    Financial Year 01/01/2025 – 31/12/2025 &nbsp;|&nbsp; Logged in as <strong>nucoreadmin</strong> &nbsp;👤
+  <div class="meta" style="margin-top:4px">
+    <b>Two separate plans, one viewer</b> — each menu is an independent plan with its own approval and
+    standalone document. The Playwright smoke suite supports the migration (its #1 risk is "no automated tests") but is approved and tracked separately. Menu 3 tracks <b>PRISM</b> — the AI-enablement programme that both plans build on; menu 4 lists the team’s other AI initiatives.
+  </div>
+</header>
+
+<nav class="menubar" aria-label="Plan menu">
+  <div class="menu active" data-part="tab-automation">
+    <button type="button">1 · UI Test Automation (QA)</button>
+  </div>
+  <div class="menu" data-part="tab-migration">
+    <button type="button">2 · PHP 8.4 Migration</button>
+  </div>
+  <div class="menu" data-part="tab-prism">
+    <button type="button">3 · PRISM status</button>
+  </div>
+  <div class="menu" data-part="tab-aiworks">
+    <button type="button">4 · Team AI works</button>
+  </div>
+</nav>
+
+<div class="layout">
+<aside class="sidenav" id="sidenav" aria-label="Sections"></aside>
+<div class="content">
+
+<!-- ================= TAB 3 : AUTOMATION PLAN ================= -->
+<section id="tab-automation" class="tab active" data-print-title="Part 1 — UI Smoke-Test Automation Plan (Playwright)">
+
+<div class="callout" style="margin-top:10px">
+  <b>Separate plan #1 — UI Smoke-Test Automation (QA).</b> An independent plan with its own owner,
+  status (DRAFT — build not started) and approval. Source: TEST_PLAN.md · standalone copy:
+  UI_AUTOMATION_TEST_PLAN.html. It <em>supports</em> the PHP 8.4 migration (menu 2) but is not part of it.
+</div>
+
+<div class="tiles">
+  <div class="tile"><div class="v">4 flows</div><div class="l">Smoke suite v1: Login → Invoice → Refund → Receipt (the money path)</div></div>
+  <div class="tile"><div class="v">2 builds</div><div class="l">Same suite runs on 7.4 and 8.4 — differences = migration defects</div></div>
+  <div class="tile"><div class="v">Dev C</div><div class="l">Owns the harness in the migration team split (with the AI agent)</div></div>
+  <div class="tile"><div class="v">Permanent</div><div class="l">After cutover the suite guards every future wave in CI</div></div>
+</div>
+
+<h2 style="border-top:none; padding-top:6px"><span class="no">A1</span>Purpose &amp; scope</h2>
+<p>Verify that the core <b>money-document flows</b> of the TRAACS interface work end-to-end through the
+real UI — <b>log in → save an invoice → save a refund → save a receipt</b> — on a dev/test instance
+where saving is safe. This is a <b>smoke suite</b> (confidence the critical path is not broken), not
+full regression; it grows into the migration's regression backbone phase by phase (§A11).</p>
+<table>
+  <tr><th>In scope (round 1)</th><th>Out of scope (this round)</th></tr>
+  <tr><td>Login, Manual Sale/Invoice save, Refund save, Customer Receipt save — happy paths + key negative/validation cases</td>
+      <td>MFA/TOTP (account has none), reporting screens, group/auto-invoice, posting/approval, print, e-invoice submission</td></tr>
+</table>
+<p class="sub">Status: <b>DRAFT — plan complete, automation not yet built.</b> Automation repo:
+<code>traacs_test</code> (Gitea). Source plan: TEST_PLAN.md.</p>
+
+<h2><span class="no">A2</span>Approach — why Playwright, and where the AI agent fits</h2>
+<ul>
+  <li><b>Style:</b> robotic end-to-end UI driving (Selenium-like), but with modern tooling.</li>
+  <li><b>Framework:</b> <b>Playwright v1.61</b> (already installed), driven live by a <b>Claude agent via
+      the Playwright MCP server</b> — the agent reads each page snapshot, performs the flow, asserts the
+      result, and <b>emits a repeatable <code>.spec.js</code> per green flow</b>.</li>
+  <li><b>Why Playwright over Selenium:</b> the saves are AJAX (<code>POST …/savesalesdetails</code> etc.).
+      Playwright auto-waits on both element state and network, avoiding the manual sleeps that make
+      Selenium flaky on this jQuery/Smarty app. No end-of-life Python dependency.</li>
+  <li><b>Two execution modes:</b> (a) live agent run (<code>/ui-smoke</code>) for authoring and
+      selector-drift repair; (b) <b>headless regression</b> via <code>npx playwright test</code> — the mode
+      the migration uses daily.</li>
+</ul>
+
+<h2><span class="no">A3</span>Environment &amp; prerequisites</h2>
+<table>
+  <tr><th>Item</th><th>Value / requirement</th></tr>
+  <tr><td>Environment</td><td><b>Dev / test instance — safe to create real documents</b> (writes to a live dev DB)</td></tr>
+  <tr><td>URL / credentials</td><td>Provided at run time (open item)</td></tr>
+  <tr><td>Login</td><td>Simple user + password + <b>company</b> (no MFA)</td></tr>
+  <tr><td>Browser</td><td>Chromium — headed (<code>DISPLAY=:0</code>) or headless</td></tr>
+  <tr><td>DB check (optional)</td><td>Read-only confirmation of created documents</td></tr>
+</table>
+
+<h3>Master data that must exist in the dev DB (saves are rejected without it)</h3>
+<ol>
+  <li>Active <b>customer</b> account (debtor, status N)</li>
+  <li>Active <b>cash and/or bank</b> account (receipt mode-of-receipt; refund A/P mode)</li>
+  <li>Active <b>cost centre</b> + <b>department</b> on the test user's allowed list</li>
+  <li><b>Transaction type</b> (if the mandatory-transaction-type setting is ON)</li>
+  <li>Active <b>counter / responsible staff</b> (refund requires one)</li>
+  <li>Open <b>financial year</b> + currency setup (receipt doc-number generation fails otherwise)</li>
+  <li>A <b>posted source invoice</b> the refund can be raised against</li>
+  <li><b>Ticket stock / coupon</b> valid for the invoice ticket row</li>
+</ol>
+
+<h2><span class="no">A4</span>Entry / exit criteria</h2>
+<table>
+  <tr><th>Gate</th><th>Criteria</th></tr>
+  <tr><td><b>Entry</b></td><td>Environment reachable, credentials valid, master data present</td></tr>
+  <tr><td><b>Exit — pass</b></td><td>TC-LOGIN-001, TC-INV-001, TC-RFND-001, TC-RCPT-001 all PASS with a generated document number captured; no console/server error on save</td></tr>
+  <tr><td><b>Exit — fail/block</b></td><td>Any P1 case fails → log defect, halt suite, report</td></tr>
+</table>
+
+<h2><span class="no">A5</span>Assertion reference — what "success" means technically</h2>
+<p class="sub">Each flow is asserted on the app's real success contract — the AJAX response key and the on-screen message — not on guesses.</p>
+<table>
+  <tr><th>Flow</th><th>Open route (GET)</th><th>Save AJAX (POST)</th><th>Success key</th><th>UI signal / doc#</th></tr>
+  <tr><td><b>Login</b></td><td>login page</td><td><code>/nucorelib/basic_users/loginajax</code></td><td>session → dashboard</td><td><code>.loginError</code> stays empty; redirect</td></tr>
+  <tr><td><b>Invoice</b></td><td><code>/traacs/basic_Sales_Sales/sales</code></td><td><code>…/savesalesdetails</code></td><td><code>strStatusPhpKey==='SUCCESS'</code></td><td><code>#invoiceMessage</code> "Invoice … has been saved"; invoice no. in <code>strMessagePhpKey</code></td></tr>
+  <tr><td><b>Refund</b></td><td><code>/traacs/basic_refund_refund/refund</code></td><td><code>…/saverefunddetails</code></td><td><code>strMessagePhpKey==='SUCCESS'</code> (or <code>Saved_No_Settlement</code>)</td><td><code>#message</code> "Refund_has_been_saved"; doc no. → <code>#txtRefundDocNo</code></td></tr>
+  <tr><td><b>Receipt</b></td><td><code>/square/basic_receipt_receipt</code></td><td><code>…/savereceipt</code></td><td><code>strMessagePhpKey=='SUCCESS'</code> (or <code>Saved_No_Settlement</code>)</td><td><code>#divMessageReceipt</code> "Receipt_has_been_saved"; doc no. in response</td></tr>
+</table>
+
+<h2><span class="no">A6</span>Test cases (round 1)</h2>
+<table>
+  <tr><th>Case</th><th>Pri</th><th>Type</th><th>Condensed steps</th><th>Expected</th></tr>
+  <tr><td><b>TC-LOGIN-001</b></td><td>P1</td><td>Happy</td><td>Open URL → user + password → select company → submit</td><td>Authenticated, lands on dashboard, no login error</td></tr>
+  <tr><td>TC-LOGIN-002</td><td>P2</td><td>Negative</td><td>Wrong password → submit</td><td>Stays on login; error shown; no session</td></tr>
+  <tr><td><b>TC-INV-001</b></td><td>P1</td><td>Happy</td><td>Open sales screen → doc date → pick customer → cost centre / department / transaction type → add one ticket row (ticket no., issue date, fare) → save</td><td>SUCCESS; "Invoice &lt;no.&gt; has been saved"; invoice number captured; post-save mode</td></tr>
+  <tr><td>TC-INV-002</td><td>P2</td><td>Negative</td><td>Leave customer (or cost centre) blank → save</td><td>Save blocked with field validation; no AJAX fired</td></tr>
+  <tr><td><b>TC-RFND-001</b></td><td>P1</td><td>Happy</td><td>Open refund (or "Goto Refund" from invoice) → load coupon to refund → doc date, cost centre, department, responsible staff + due date → ≥1 coupon row with amount → add A/P mode-of-refund &gt; 0 → save</td><td>SUCCESS; "Refund_has_been_saved"; refund/credit number captured</td></tr>
+  <tr><td>TC-RFND-002</td><td>P3</td><td>Negative</td><td>Save with no coupon row / no A/P amount</td><td>Blocked with validation; no document created</td></tr>
+  <tr><td><b>TC-RCPT-001</b></td><td>P1</td><td>Happy</td><td>Open receipt → date, cost centre, department → party line (customer, ledger, amount, CC/dept) → cash mode line (cash account + equal amount) → save</td><td>SUCCESS; "Receipt_has_been_saved"; receipt/voucher number captured; reloads in edit mode</td></tr>
+  <tr><td>TC-RCPT-002</td><td>P2</td><td>Negative</td><td>Party (credit) amount ≠ mode (debit) amount → save</td><td>Blocked: "Amount_in_party_and_receipt_are_not_tally"; nothing created</td></tr>
+</table>
+<p class="sub">Dependency chain: TC-RFND-001 needs a posted source invoice — chained after TC-INV-001 or pre-seeded.
+Full field-level steps and selectors live in TEST_PLAN.md §6 and the agent's flow map.</p>
+
+<h2><span class="no">A7</span>Traceability — test case → emitted spec</h2>
+<table>
+  <tr><th>Test case</th><th>Emitted spec file</th><th>Agent flow key</th></tr>
+  <tr><td>TC-LOGIN-001/002</td><td><code>tests/e2e/login.spec.js</code></td><td>LOGIN</td></tr>
+  <tr><td>TC-INV-001/002</td><td><code>tests/e2e/invoice.spec.js</code></td><td>INVOICE</td></tr>
+  <tr><td>TC-RFND-001/002</td><td><code>tests/e2e/refund.spec.js</code></td><td>REFUND</td></tr>
+  <tr><td>TC-RCPT-001/002</td><td><code>tests/e2e/receipt.spec.js</code></td><td>RECEIPT</td></tr>
+</table>
+<p class="sub">The live agent reads flow definitions (selectors + routes + success indicators), runs the flow,
+asserts the success signal, screenshots every step, and on green writes the matching spec file.</p>
+
+<h2><span class="no">A8</span>Defect logging, reporting &amp; cleanup</h2>
+<ul>
+  <li><b>Per failed case:</b> screenshot, page snapshot, the save-AJAX response JSON, console errors.</li>
+  <li><b>Report:</b> per-flow PASS/FAIL table + captured document numbers + root-cause note; optional push notification on suite pass/fail.</li>
+  <li><b>Cleanup policy:</b> dev-DB saves are real. Default is <b>keep</b> created documents as evidence
+      (tagged by document number in the report) unless auto-cleanup is requested — <em>decision pending, see open items</em>.</li>
+</ul>
+
+<h2><span class="no">A9</span>Risks, assumptions &amp; open items</h2>
+<table>
+  <tr><th>Risk / assumption</th><th>Handling</th></tr>
+  <tr><td>Refund/receipt selectors verified <b>from code</b>, not yet against the live DOM</td><td>First run may need minor selector tuning — the agent detects and flags drift</td></tr>
+  <tr><td>Saves need valid master data</td><td>Missing masters surface as form rejection, not a tooling bug — checked at entry</td></tr>
+  <tr><td>Refund depends on a source invoice</td><td>Chain TC-INV-001 → TC-RFND-001, or pre-seed one</td></tr>
+</table>
+<div class="callout gate">
+  <b>Open items to confirm before the first run:</b>
+  (1) dev URL + credentials + company value ·
+  (2) a valid test customer / cash account / ticket stock ·
+  (3) auto-cleanup of created documents, or keep as evidence.
+</div>
+
+
+<h2 id="live-demo"><span class="no">A10</span>Live Playwright demo — watch an agent run</h2>
+<p class="sub"><b>Simulated preview</b> — the suite is not built yet, so this panel replays the exact
+planned flow: the real routes, selectors and success signals from §A5/§A6, at realistic pace.
+Left pane shows the <b>interface being driven</b>; right pane is the agent's console. Document numbers
+are illustrative. Press <b>▶ Run</b>.</p>
+
+<div class="demo-shell">
+  <div class="demo-bar">
+    <span class="dot2" style="background:#ff5f57"></span><span class="dot2" style="background:#febc2e"></span><span class="dot2" style="background:#28c840"></span>
+    <span class="demo-title">traacs-ui-tester · /ui-smoke · chromium (headed) · dev instance</span>
+    <span class="demo-controls"><button id="demoRun" type="button">▶ Run</button><button id="demoReset" type="button">↺ Reset</button></span>
+  </div>
+  <div class="demo-flows">
+    <span class="flow-chip" id="chip-LOGIN">LOGIN</span>
+    <span class="flow-chip" id="chip-INVOICE">INVOICE</span>
+    <span class="flow-chip" id="chip-REFUND">REFUND</span>
+    <span class="flow-chip" id="chip-RECEIPT">RECEIPT</span>
+  </div>
+  <div class="demo-split">
+    <div class="demo-view">
+      <div class="demo-urlbar" id="demoUrl">about:blank</div>
+      <div class="demo-screen" id="demoScreen"><div class="idle">Interface view — the screens appear here while the agent drives them.<br>Press ▶ Run.</div></div>
+    </div>
+    <div class="demo-log" id="demoLog"><div class="dim">— press ▶ Run to start the simulated agent run —</div></div>
   </div>
 </div>
 
-<!-- TOP NAV -->
-<div id="topNav">
-  <a href="#">Home</a>
-  <a href="#" class="active">Front Office</a>
-  <a href="#">Back Office</a>
-  <a href="#">Assets</a>
-  <a href="#">Reports</a>
-  <a href="#">Master</a>
-  <a href="#">Tools</a>
+<p class="sub">When the real harness lands, this same view is produced live by the agent
+(<code>/ui-smoke</code>) and headlessly by <code>npx playwright test</code> — with real document
+numbers and per-step screenshots saved under <code>artifacts/&lt;run&gt;/</code>.</p>
+
+<h2 id="qa-migration"><span class="no">A11</span>How this suite supports the PHP 8.4 migration</h2>
+<p>The migration plan's #1 risk is <b>"no automated tests on 3.9M LOC of finance code"</b> — this suite
+is that risk's mitigation: built during migration Phase 0, guarding both the 7.4 and 8.4 builds
+throughout, and the regression backbone at cutover. Full migration detail is under the
+<b>PHP 8.4 Migration</b> menu.</p>
+
+<div class="viz-root">
+  <p class="viz-title">Automation stream alongside the migration (months 0–6)</p>
+  <p class="viz-sub">The red line is the migration GO/NO-GO gate.<span class="hover-hint"> Hover a bar for detail.</span></p>
+  <div class="gantt">
+    <div class="g-grid">
+      <i style="left:0%"></i><i style="left:16.667%"></i><i style="left:33.333%"></i>
+      <i style="left:50%"></i><i style="left:66.667%"></i><i style="left:83.333%"></i><i style="left:100%"></i>
+      <div class="g-gate" style="left:16.667%"><span>GO / NO-GO</span></div>
+    </div>
+    <div class="g-row"><div class="g-label">Build harness (4 flows)</div><div class="g-track"><div class="g-bar" style="left:0%; width:25%"><span class="tip"><b>Months 0–1.5</b>Agent drives flows on 7.4 → emits login/invoice/refund/receipt specs (baseline)</span></div></div></div>
+    <div class="g-row"><div class="g-label">Suite guards both builds</div><div class="g-track"><div class="g-bar" style="left:16.667%; width:66.667%"><span class="tip"><b>Months 1–5</b>Headless runs on 7.4 + 8.4 after every fix batch; new flows added per phase</span></div></div></div>
+    <div class="g-row"><div class="g-label">Regression + UAT</div><div class="g-track"><div class="g-bar" style="left:83.333%; width:16.667%"><span class="tip"><b>Months 5–6</b>Suite = regression backbone; parallel-run evidence for go-live</span></div></div></div>
+    <div class="g-axis"><span>Month 0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span style="flex:0; white-space:nowrap">6</span></div>
+  </div>
 </div>
 
-<div id="wrap">
+<table>
+  <tr><th>Migration phase</th><th>What the automation stream does there</th></tr>
+  <tr><td><b>Phase 0 — trial run</b> (mo 0–1)</td>
+      <td>Harness stands up in parallel with the framework trial. The agent runs the 4 P1 flows on the
+      <b>current 7.4 build</b> and emits the baseline specs — so a known-green reference exists
+      <em>before</em> anything changes.</td></tr>
+  <tr><td><b>Phase 1 — load-time fatals</b> (mo 1–2.5)</td>
+      <td>The same specs run headless against the <b>8.4 build after every fix batch</b>. A flow that
+      passes on 7.4 and fails on 8.4 is a migration defect, caught the same day.</td></tr>
+  <tr><td><b>Phase 2 — Excel/export rebuild</b> (mo 1.5–3.5)</td>
+      <td>Suite extends with export-trigger flows; exported files from both builds are captured as
+      artifacts and compared (the human eye still signs off styled workbooks).</td></tr>
+  <tr><td><b>Phase 3 — finance <code>==</code> review</b> (mo 2–5)</td>
+      <td>The invoice / refund / receipt specs assert <b>document numbers and totals</b> — a safety net
+      under the hand-review: if a comparison fix changes a saved amount, the suite sees it on the
+      next run.</td></tr>
+  <tr><td><b>Phase 4 — Smarty per module</b> (mo 3–6)</td>
+      <td>After each module's templates convert, its screens get a smoke pass (open, fill, save) before
+      the module is declared done — the "module ratchet" has teeth because the check is automated.</td></tr>
+  <tr><td><b>Phase 5 — regression &amp; cutover</b> (mo 5–6)</td>
+      <td>The accumulated suite is the regression backbone; the staging <b>parallel-run</b> (same
+      operations on 7.4 and 8.4, outputs diffed) is executed through it. Green suite + UAT sign-off =
+      go-live evidence.</td></tr>
+  <tr><td><b>After cutover</b></td>
+      <td>The suite stays in CI and smoke-tests every future wave — the migration pays for a permanent
+      quality asset the codebase has never had.</td></tr>
+</table>
 
-  <!-- LEFT SIDEBAR -->
-  <div id="sidebar">
-    <div class="sidebar-heading">Issue Tracker</div>
-    <ul>
-      <li><a href="#" class="side-link active" data-tab="raiseCase">Raise a Case</a></li>
-      <li><a href="#" class="side-link"        data-tab="issueReport">Issue Report</a></li>
-      <li><a href="#" class="side-link"        data-tab="assigneeView">Assignee View</a></li>
-      <li><a href="#" class="side-link"        data-tab="userView">User View</a></li>
-      <li><a href="#" class="side-link"        data-tab="readOnlyView">Read Only View</a></li>
-    </ul>
+</section>
+
+<!-- ================= TAB 2 : MIGRATION PLAN ================= -->
+<section id="tab-migration" class="tab" data-print-title="Part 2 — PHP 7.4 → 8.4 Migration Plan">
+<div class="callout" style="margin-top:10px">
+  <b>Separate plan #2 — PHP 7.4 → 8.4 Migration.</b> An independent plan with its own budget and
+  Phase 0 go/no-go approval. Standalone copies: PHP8_MIGRATION_PLAN.html / .pdf / .md. The QA
+  automation plan (§A11) is a separate supporting plan.
+</div>
+<!-- ============ Plain-words summary ============ -->
+<h2 style="border-top:none; padding-top:0"><span class="no">★</span>The plan in one minute — plain words</h2>
+<p class="sub">Read only this table if you have 60 seconds. Everything below is the detail behind each answer.</p>
+<table>
+  <tr><th style="width:26%">Question</th><th>Answer</th></tr>
+  <tr><td><b>What is the problem?</b></td>
+      <td>TRAACS runs on PHP 7.4 — the "engine" under the application. It has had <b>no security fixes since Nov 2022</b>. Like running Windows XP: it works today, but it is risky for a finance system and gets harder to support every year.</td></tr>
+  <tr><td><b>What do we want to do?</b></td>
+      <td>Upgrade only the engine to PHP 8.4. <b>Screens, features, workflows and the database stay exactly the same</b> — users should notice nothing.</td></tr>
+  <tr><td><b>Do we rewrite the application?</b></td>
+      <td><b>No.</b> A rewrite of 3.9 million lines would take years and cost millions. We keep the current framework by swapping in a maintained modern copy that uses the same names — the application code barely changes.</td></tr>
+  <tr><td><b>Where does the work actually go?</b></td>
+      <td>Two things. (1) Replacing a few very old bundled components — mainly the screen-display engine (used by every screen) and the Excel-export library (used by 559 files). (2) Hand-checking ~900 lines of money-comparison code that PHP 8 treats differently.</td></tr>
+  <tr><td><b>How long, and with whom?</b></td>
+      <td><b>About 6 months with 3 developers + AI tools</b> (best case 4.5, worst case 8). Without AI it would be roughly 9–12 months.</td></tr>
+  <tr><td><b>Does normal work stop meanwhile?</b></td>
+      <td><b>No.</b> New features and fixes continue on the current system exactly as today; the migration runs on a separate copy that is kept in sync weekly. Only the final 2–3 weeks before go-live restrict releases to critical fixes.</td></tr>
+  <tr><td><b>What do we ask for today?</b></td>
+      <td>Only a <b>3–4 week trial (Phase 0) by 1 developer</b>: get the application to start on PHP 8.4. The big budget is committed <b>only if the trial passes</b>. If it fails, we lost weeks, not months.</td></tr>
+  <tr><td><b>What is the biggest risk?</b></td>
+      <td>The app has almost no automated tests, and PHP 8 can <b>silently</b> change some money calculations. Answer: build an automated smoke-test suite early, hand-review all 889 flagged calculation lines, and run old vs new side by side before go-live.</td></tr>
+  <tr><td><b>What if we do nothing?</b></td>
+      <td>The cost never goes down — the security exposure, the dying libraries and the shrinking developer pool only make the eventual jump bigger and riskier.</td></tr>
+</table>
+
+<!-- ============ 0. Executive summary ============ -->
+<h2><span class="no">0</span>Executive summary</h2>
+
+<div class="tiles">
+  <div class="tile"><div class="v">~6 months</div><div class="l">Likely timeline (range 4.5–8) with 3 devs + AI</div></div>
+  <div class="tile"><div class="v">No rewrite</div><div class="l">Keep ZF1 via the <code>zf1-future</code> community fork</div></div>
+  <div class="tile"><div class="v">39.1 pw</div><div class="l">Component-upgrade work (1 pw = 1 developer × 1 week)</div></div>
+  <div class="tile"><div class="v">3–4 weeks</div><div class="l">Phase 0 trial run before any big spend (go/no-go)</div></div>
+</div>
+
+<div class="callout">
+  <b>The decision we are asking for:</b> approve <b>Phase 0 only</b> (~3–4 weeks, ~1 developer).
+  Phase 0 stands up a PHP 8.4 runtime, swaps the framework to <code>zf1-future</code>, re-applies our
+  3 local patches, and proves the application <b>boots</b>. If it does, the whole plan is de-risked and
+  we commit the remaining budget. If it fails, we have spent <b>weeks, not months</b>, finding out.
+</div>
+
+<p>Every number in this document was <b>measured against the live codebase</b> (PRISM dossiers +
+direct code scan + an 11-agent library-compatibility audit), not estimated from memory.</p>
+
+<!-- ============ 1. Why we must do this ============ -->
+<h2><span class="no">1</span>Why upgrade at all — and why now</h2>
+<ul>
+  <li><b>PHP 7.4 is end-of-life.</b> Security fixes ended 28 Nov 2022. Every year on it widens our
+      exposure window on an internet-facing <b>finance</b> application.</li>
+  <li><b>The ecosystem has moved.</b> New OS images, extensions, libraries and security patches
+      target PHP 8.x only. We are already pinning old containers to keep 7.4 alive.</li>
+  <li><b>Hiring and retention.</b> PHP 7.4 + Smarty 2 is a shrinking skill pool; PHP 8.4 keeps the
+      stack maintainable by the people we can actually hire.</li>
+  <li><b>Why 8.4 and not 8.1/8.2:</b> the migration cost is nearly identical wherever we land
+      (the breaking changes we care about arrived in 8.0), so we jump once to the version with the
+      longest support runway instead of paying the QA bill twice.</li>
+</ul>
+
+<!-- ============ 2. What we are dealing with ============ -->
+<h2><span class="no">2</span>How big is this job? — the application, measured</h2>
+<table>
+  <tr><th>Metric</th><th>Value</th></tr>
+  <tr><td>Application PHP files / lines of code</td><td><b>11,047 files / ~3.9 million LOC</b> (excluding Zend/vendor)</td></tr>
+  <tr><td>Controllers</td><td>traacs 2,050 + square 524 + nucorelib 241 = <b>2,815</b></td></tr>
+  <tr><td>Mappers (data layer)</td><td>692</td></tr>
+  <tr><td>JavaScript files</td><td>~1,490</td></tr>
+  <tr><td>Smarty templates (<code>.tpl</code>)</td><td><b>2,055</b> — Smarty is the <em>only</em> view layer (zero .phtml)</td></tr>
+  <tr><td>Indexed classes / methods</td><td>7,962 / 83,250</td></tr>
+  <tr><td>Automated tests</td><td><b>~2 files — effectively none.</b> This is the dominant QA risk.</td></tr>
+  <tr><td>Current runtime</td><td>PHP 7.4.33 (container <code>tw-ub24-php74</code>), PostgreSQL 16</td></tr>
+</table>
+
+<p class="sub"><b>What does NOT change:</b> the database (PostgreSQL 16), business logic, screens and
+user workflows, the SVN process, and the ZF1 MVC structure. This is a compatibility migration, not a
+redesign — users should notice nothing except that everything still works.</p>
+
+<!-- ============ 3. Framework decision ============ -->
+<h2><span class="no">3</span>Key decision — keep the current framework, no rewrite</h2>
+<p>The application's framework (Zend Framework 1) looked like the scary part. It is not:</p>
+<ul>
+  <li>Our vendored Zend is <b>stock 1.10.6</b> (2,218 files) with only <b>3 local patches</b> —
+      a module-path split in <code>ViewRenderer.php:844</code> and 2 custom authentication adapters.</li>
+  <li>We swap it for <b><code>shardj/zf1-future</code> 1.25</b> — the community-maintained fork of ZF1,
+      compatible up to PHP 8.4/8.5. Same <code>Zend_*</code> class names, so the <b>3,297</b> application
+      files that use Zend classes <b>do not change at all</b>.</li>
+  <li>The 3 patches get re-applied <em>outside</em> the vendor tree, so future framework bumps stay clean.</li>
+  <li>Estimated effort: <b>3 person-weeks</b> — versus a multi-year, multi-million full rewrite.</li>
+</ul>
+
+<!-- ============ 4. The real blockers ============ -->
+<h2><span class="no">4</span>Where the real work is — replacing old bundled components</h2>
+<p>The framework swap is easy; the <b>old third-party components bundled inside the app</b> are where
+the work is. Each row below is one component: what it does, whether it survives PHP 8.4, and what
+replacing it costs. Verified versions and usage counts:</p>
+
+<table>
+  <tr><th>Library</th><th>Pinned version</th><th>PHP 8.4 status</th><th>Usage</th><th>Remediation</th><th class="num">Effort (pw)</th></tr>
+  <tr><td><b>Smarty</b> (view engine)</td><td>2.6.22</td><td><span class="status st-critical"><span class="dot"></span>Hard blocker</span></td><td>2,055 templates</td><td>Upgrade to Smarty 5, rewrite 2 wrapper classes, sweep + regression-test every screen</td><td class="num"><b>14</b></td></tr>
+  <tr><td><b>PHPExcel</b> (Excel export)</td><td>1.8.0</td><td><span class="status st-critical"><span class="dot"></span>Replace</span></td><td>559 files</td><td>Migrate to PhpSpreadsheet (bulk-automated + manual edge cases)</td><td class="num"><b>9</b></td></tr>
+  <tr><td>FPDI + fpdf_merge (PDF)</td><td>1.4.4 / 1.0</td><td><span class="status st-critical"><span class="dot"></span>Fatal on 8.x</span></td><td>103 callers</td><td>Move to FPDI 2.x (already vendored); rewrite one library file; delete the unused merger</td><td class="num">3.5</td></tr>
+  <tr><td>box/spout (spreadsheet writer)</td><td>2.6.x</td><td><span class="status st-serious"><span class="dot"></span>Replace</span></td><td>171 files</td><td>Migrate to openspout (writer API only — reader path is unused)</td><td class="num">3</td></tr>
+  <tr><td>Zend Framework 1</td><td>1.10.6</td><td><span class="status st-good"><span class="dot"></span>Drop-in fork</span></td><td>3,297 files</td><td><code>zf1-future</code> swap + re-apply 3 patches + deprecation sweep</td><td class="num">3</td></tr>
+  <tr><td>TCPDF (PDF)</td><td>6.0.020</td><td><span class="status st-critical"><span class="dot"></span>Fatal syntax</span></td><td>24 files</td><td>Drop-in version bump to 6.11.x</td><td class="num">2.5</td></tr>
+  <tr><td>memcache extension</td><td>ext-memcache</td><td><span class="status st-serious"><span class="dot"></span>Extension dead</span></td><td>129 files</td><td>Switch to <code>memcached</code>, centralize via the existing manager class</td><td class="num">2.5</td></tr>
+  <tr><td>phpseclib (SFTP)</td><td>1.0.18</td><td><span class="status st-serious"><span class="dot"></span>Replace</span></td><td>12 files</td><td>Upgrade to 3.0; retest partner SFTP feeds</td><td class="num">1.5</td></tr>
+  <tr><td>PHPMailer (email)</td><td>5.2.16</td><td><span class="status st-critical"><span class="dot"></span>Fatal on 8.x</span></td><td>3 files</td><td>Drop-in upgrade to 6.9.x</td><td class="num">0.4</td></tr>
+  <tr><td>firebase/php-jwt (tokens)</td><td>5.2.0</td><td><span class="status st-good"><span class="dot"></span>OK as-is</span></td><td>4 files</td><td>None needed — smoke-test only</td><td class="num">0.2</td></tr>
+</table>
+
+<div class="viz-root">
+  <p class="viz-title">Library remediation effort — person-weeks</p>
+  <p class="viz-sub">Total 39.1 pw. Smarty + PHPExcel = 23 pw, the critical path; most of the rest runs in parallel.<span class="hover-hint"> Hover a bar for detail.</span></p>
+  <!-- max = 14 pw -->
+  <div class="e-row"><div class="e-label">Smarty 2 → 5</div><div class="e-track"><div class="e-bar" style="width:100%"><span class="tip"><b>Smarty 2.6.22 → 5</b>14 pw — 2,055 templates, every screen regression-tested</span></div><span class="e-val" style="left:calc(100% - 46px); color:#fff;">14 pw</span></div></div>
+  <div class="e-row"><div class="e-label">PHPExcel → PhpSpreadsheet</div><div class="e-track"><div class="e-bar" style="width:64.3%"><span class="tip"><b>PHPExcel 1.8.0 → PhpSpreadsheet</b>9 pw — 559 files, bulk-automated + manual edge cases</span></div><span class="e-val" style="left:calc(64.3% + 8px)">9 pw</span></div></div>
+  <div class="e-row"><div class="e-label">FPDI / PDF merger</div><div class="e-track"><div class="e-bar" style="width:25%"><span class="tip"><b>FPDI 1.4.4 → 2.x</b>3.5 pw — 103 callers, one library file rewritten</span></div><span class="e-val" style="left:calc(25% + 8px)">3.5 pw</span></div></div>
+  <div class="e-row"><div class="e-label">box/spout → openspout</div><div class="e-track"><div class="e-bar" style="width:21.4%"><span class="tip"><b>box/spout 2.6 → openspout</b>3 pw — 171 files, writer API only</span></div><span class="e-val" style="left:calc(21.4% + 8px)">3 pw</span></div></div>
+  <div class="e-row"><div class="e-label">ZF1 → zf1-future</div><div class="e-track"><div class="e-bar" style="width:21.4%"><span class="tip"><b>Zend 1.10.6 → zf1-future 1.25</b>3 pw — vendor swap + 3 patches + sweep</span></div><span class="e-val" style="left:calc(21.4% + 8px)">3 pw</span></div></div>
+  <div class="e-row"><div class="e-label">TCPDF bump</div><div class="e-track"><div class="e-bar" style="width:17.9%"><span class="tip"><b>TCPDF 6.0.020 → 6.11.x</b>2.5 pw — drop-in bump, PDF visual checks</span></div><span class="e-val" style="left:calc(17.9% + 8px)">2.5 pw</span></div></div>
+  <div class="e-row"><div class="e-label">memcache → memcached</div><div class="e-track"><div class="e-bar" style="width:17.9%"><span class="tip"><b>ext-memcache → memcached</b>2.5 pw — 129 files, centralized via manager</span></div><span class="e-val" style="left:calc(17.9% + 8px)">2.5 pw</span></div></div>
+  <div class="e-row"><div class="e-label">phpseclib → 3.0</div><div class="e-track"><div class="e-bar" style="width:10.7%"><span class="tip"><b>phpseclib 1.0.18 → 3.0</b>1.5 pw — 12 files, SFTP retest</span></div><span class="e-val" style="left:calc(10.7% + 8px)">1.5 pw</span></div></div>
+  <div class="e-row"><div class="e-label">PHPMailer → 6.9</div><div class="e-track"><div class="e-bar" style="width:2.9%"><span class="tip"><b>PHPMailer 5.2.16 → 6.9.x</b>0.4 pw — 3 files</span></div><span class="e-val" style="left:calc(2.9% + 8px)">0.4 pw</span></div></div>
+  <div class="e-row"><div class="e-label">php-jwt (verify only)</div><div class="e-track"><div class="e-bar" style="width:1.4%"><span class="tip"><b>firebase/php-jwt 5.2.0</b>0.2 pw — OK as-is, smoke test</span></div><span class="e-val" style="left:calc(1.4% + 8px)">0.2 pw</span></div></div>
+</div>
+
+<h3>Things that looked scary but are not</h3>
+<ul>
+  <li>742 controller subclasses of our base class — all clean, <b>zero effort</b> despite the count.</li>
+  <li>The dreaded <code>each()</code> removal — a <b>false alarm</b>: only 6 files / 14 real uses in app
+      code (an early scan had matched <code>foreach(</code>). Tiny, and auto-fixable.</li>
+  <li>JWT library works as-is; the unused PDF merger and unused spreadsheet reader paths simply get deleted.</li>
+</ul>
+
+<!-- ============ 5. Why scripts can't do this one ============ -->
+<h2><span class="no">5</span>"Last time we upgraded with scripts" — why 7.4 → 8.4 is different</h2>
+
+<p>A fair question from anyone who remembers the PHP 5.6 → 7.4 upgrade: that one was largely
+scripted find-and-replace. Why can't this one be? Because the two jumps break in
+<b>fundamentally different ways</b>:</p>
+
+<table>
+  <tr><th style="width:18%"></th><th>5.6 → 7.4 (last time)</th><th>7.4 → 8.4 (this time)</th></tr>
+  <tr><td><b>Nature of the breaks</b></td>
+      <td>Mostly <b>removed functions and old syntax</b> — fixed patterns a script can find and replace one-to-one (<code>ereg</code>→<code>preg_match</code>, <code>split</code>→<code>explode</code>, old-style constructors, <code>mysql_*</code> wrappers).</td>
+      <td>Mostly <b>behavior changes</b> — the same line runs on both versions but <b>returns a different answer</b> (<code>==</code> comparisons, string↔number rules, null handling) — plus two <b>whole-library replacements</b> (Smarty, PHPExcel) whose successors have different APIs, not different spellings.</td></tr>
+  <tr><td><b>How a missed spot shows up</b></td>
+      <td><b>Loudly.</b> A missed call crashed with a fatal error the first time it ran — easy to catch in testing.</td>
+      <td><b>Silently.</b> A wrong figure in a refund calculation. No crash, no log line — only a person comparing outputs notices.</td></tr>
+  <tr><td><b>Can a script decide the fix?</b></td>
+      <td>Yes — the replacement was mechanical and always correct.</td>
+      <td>Often <b>no</b>. A script can find every <code>==</code> (we did — 889 sites), but it cannot know the business intent of each one. Blindly converting them all to <code>===</code> would itself change behavior and break working logic.</td></tr>
+  <tr><td><b>View / export layers</b></td>
+      <td>Smarty 2 and PHPExcel still ran fine on 7.x — untouched.</td>
+      <td>Both are <b>dead on 8.x</b>. 2,055 templates and 559 export files must move to different-API successors — a migration with visual verification, not a substitution.</td></tr>
+</table>
+
+<h3>The major PHP 8.x changes that hit this codebase — and what a script can do about each</h3>
+<table>
+  <tr><th>Change</th><th>Since</th><th>Impact here (measured)</th><th>Fix</th><th>Script-fixable?</th></tr>
+  <tr><td><code>==</code> between number and string gives a different result (<code>0 == "abc"</code>: true → false)</td><td>8.0</td><td><b>889 literal-compare sites in 67 finance files</b>; Refund worst</td><td>Senior manual review, site by site (§6)</td><td><span class="status st-critical"><span class="dot"></span>No — intent</span></td></tr>
+  <tr><td>Old bundled libraries fatal at load — Smarty 2, PHPExcel, PHPMailer 5, FPDI 1, TCPDF 6.0</td><td>8.0</td><td>Every screen + 559 export files + PDF/mail paths</td><td>Replace / bump per §4</td><td><span class="status st-critical"><span class="dot"></span>No — API migration</span></td></tr>
+  <tr><td>Bad arguments to built-in functions now throw <code>TypeError</code> (was warning + null)</td><td>8.0</td><td>Unguarded calls crash where they used to limp on</td><td>Smoke-test flows, add guards where they surface</td><td><span class="status st-warning"><span class="dot"></span>Partly</span></td></tr>
+  <tr><td>Passing <code>null</code> to string functions (<code>trim(null)</code>…) deprecated</td><td>8.1</td><td>Widespread in form/request handling</td><td><code>?? ''</code> guards; Rector drafts them</td><td><span class="status st-warning"><span class="dot"></span>Partly</span></td></tr>
+  <tr><td>Arithmetic on non-numeric strings throws (<code>"abc" + 1</code>)</td><td>8.0</td><td>Untyped form-input math</td><td>Review + explicit casts</td><td><span class="status st-warning"><span class="dot"></span>Partly</span></td></tr>
+  <tr><td>Undefined variables / array keys escalate notice → warning</td><td>8.0</td><td>Log flood that buries real errors</td><td>Baseline the noise, fix hot paths</td><td><span class="status st-warning"><span class="dot"></span>Partly</span></td></tr>
+  <tr><td>Resources became objects (curl, GD…) — <code>is_resource()</code> checks fail</td><td>8.0–8.1</td><td>Integration / image code spots</td><td>Targeted <code>instanceof</code> fixes</td><td><span class="status st-warning"><span class="dot"></span>Partly</span></td></tr>
+  <tr><td>Undeclared ("dynamic") object properties deprecated</td><td>8.2</td><td>ZF1 + legacy models create properties on the fly, everywhere</td><td><code>zf1-future</code> auto-tags <code>#[AllowDynamicProperties]</code>; declare properties in new code</td><td><span class="status st-good"><span class="dot"></span>Yes — the fork</span></td></tr>
+  <tr><td><code>each()</code> / <code>create_function()</code> / curly string offsets <code>$str{0}</code> removed</td><td>8.0</td><td>6 app files + TCPDF lib</td><td>Mechanical replace</td><td><span class="status st-good"><span class="dot"></span>Yes — Rector</span></td></tr>
+</table>
+
+<div class="callout">
+  <b>The scriptable part IS scripted in this plan.</b> Everything marked "Yes" or the mechanical half
+  of "Partly" runs through Rector in Phase 0–1 — that is why the pure code-fix effort is small.
+  The 6 months is the part no script can do: two library migrations with visual verification,
+  the silent <code>==</code> review, and full regression of a finance app that has no test suite.
+</div>
+
+<!-- ============ 6. Finance risk ============ -->
+<h2><span class="no">6</span>The silent risk — PHP 8 changes how some money checks behave</h2>
+<div class="callout gate">
+  PHP 8.0 changed how <code>==</code> compares numbers with text (e.g. <code>0 == "abc"</code> was
+  <b>true</b>, is now <b>false</b>). In tax / refund / settlement calculations this can produce
+  <b>wrong figures with no error message</b>. It is the highest-judgment, least-automatable part of the work.
+</div>
+<ul>
+  <li>6,669 loose comparisons live in the 10 finance controller directories; <b>889 compare against
+      literals in 67 files</b> — that is the human review surface.</li>
+  <li>Worst offenders: <code>Refund/Refund.php</code> (207), <code>Refundnetrevenuetransaction.php</code> (75),
+      <code>Refundcostofsalestransaction.php</code> (60), <code>Againstinvoice.php</code> (45).</li>
+  <li><b>Refund is the highest-risk subsystem.</b> A senior developer reviews these by hand — automated
+      tools cannot decide the <em>intent</em> of a comparison. An AI-generated checklist of all 889 sites already exists.</li>
+</ul>
+
+<!-- ============ 7. Phased plan ============ -->
+<h2><span class="no">7</span>Phased plan &amp; timeline</h2>
+
+<div class="viz-root">
+  <p class="viz-title">Six phases over ~6 calendar months (3 developers, phases overlap)</p>
+  <p class="viz-sub">The red line is the GO/NO-GO gate at the end of month 1 — no major spend before it.<span class="hover-hint"> Hover a bar for the deliverable.</span></p>
+  <div class="gantt">
+    <div class="g-grid">
+      <i style="left:0%"></i><i style="left:16.667%"></i><i style="left:33.333%"></i>
+      <i style="left:50%"></i><i style="left:66.667%"></i><i style="left:83.333%"></i><i style="left:100%"></i>
+      <div class="g-gate" style="left:16.667%"><span>GO / NO-GO</span></div>
+    </div>
+    <div class="g-row"><div class="g-label">0 · Trial run (boots?)</div><div class="g-track"><div class="g-bar" style="left:0%; width:16.667%"><span class="tip"><b>Phase 0 — months 0–1</b>PHP 8.4 container + zf1-future swap + 3 patches → app boots; CI baseline</span></div></div></div>
+    <div class="g-row"><div class="g-label">1 · Clear load-time fatals</div><div class="g-track"><div class="g-bar" style="left:16.667%; width:25%"><span class="tip"><b>Phase 1 — months 1–2.5</b>PHPMailer, phpseclib, TCPDF + FPDI, memcache → app loads on 8.4</span></div></div></div>
+    <div class="g-row"><div class="g-label">2 · Excel / export rebuild</div><div class="g-track"><div class="g-bar" style="left:25%; width:33.333%"><span class="tip"><b>Phase 2 — months 1.5–3.5</b>PHPExcel → PhpSpreadsheet (559 files), spout → openspout (171)</span></div></div></div>
+    <div class="g-row"><div class="g-label">3 · Finance logic review</div><div class="g-track"><div class="g-bar" style="left:33.333%; width:50%"><span class="tip"><b>Phase 3 — months 2–5</b>== / != semantic review + error-suppression unmask + runtime TypeErrors</span></div></div></div>
+    <div class="g-row"><div class="g-label">4 · Smarty templates</div><div class="g-track"><div class="g-bar" style="left:50%; width:50%"><span class="tip"><b>Phase 4 — months 3–6</b>Smarty 5 engine + 2,055 templates, phased per module</span></div></div></div>
+    <div class="g-row"><div class="g-label">5 · Regression &amp; cutover</div><div class="g-track"><div class="g-bar" style="left:83.333%; width:16.667%"><span class="tip"><b>Phase 5 — months 5–6</b>Full regression, staging parallel-run, UAT, go-live</span></div></div></div>
+    <div class="g-axis"><span>Month 0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span style="flex:0; white-space:nowrap">6</span></div>
   </div>
+</div>
 
-  <!-- MAIN -->
-  <div id="main">
+<table>
+  <tr><th>Phase</th><th>Months</th><th>Deliverable</th><th>Exit gate</th></tr>
+  <tr><td><b>0 — Trial run (prove it works)</b></td><td>0–1</td><td>PHP 8.4 runtime container + <code>zf1-future</code> swap + 3 patches re-applied → <b>application boots</b>; Rector/PHPStan baseline + dual-build CI</td><td><b>GO / NO-GO decision</b></td></tr>
+  <tr><td>1 — Clear load-time fatals</td><td>1–2.5</td><td>PHPMailer 6.x, phpseclib 3.0, TCPDF 6.11 + FPDI 2.x, memcache → memcached</td><td>App loads cleanly on 8.4</td></tr>
+  <tr><td>2 — Export / Excel rebuild</td><td>1.5–3.5</td><td>PHPExcel → PhpSpreadsheet (559 files), spout → openspout (171 files)</td><td>All reports export correctly</td></tr>
+  <tr><td>3 — Finance logic review</td><td>2–5</td><td><code>==</code>/<code>!=</code> semantic review, unmask suppressed errors, fix runtime TypeErrors</td><td>Finance math validated</td></tr>
+  <tr><td>4 — Smarty templates</td><td>3–6</td><td>Smarty 5 engine + 2,055 templates, <b>phased per module</b> (traacs → square → nucore)</td><td>All screens render</td></tr>
+  <tr><td>5 — Regression &amp; cutover</td><td>5–6</td><td>Full functional regression, staging parallel-run, UAT, go-live</td><td>Production cutover</td></tr>
+</table>
+<p class="sub">Phases overlap deliberately — three developers working in parallel is what compresses
+the sum of the parts into ~6 calendar months.</p>
 
-    <!-- PAGE TITLE BAR -->
-    <div class="page-title-bar">
-      <h2>Issue Tracker</h2>
+<!-- ============ 8. New work during the migration ============ -->
+<h2><span class="no">8</span>Business does not stop — new work during the 6 months</h2>
 
-      <!-- RAISE A CASE BUTTONS -->
-      <div class="btn-bar" id="raiseCaseBtns">
+<p>TRAACS ships new waves and support fixes continuously. The migration cannot freeze development
+for 6 months — so the plan runs <b>two streams in parallel</b> and controls the drift between them.</p>
 
-        <!-- STATUS BADGE (shown after save) -->
-        <div class="status-wrap">
-          <div class="status-btn pending" id="statusBtn" onclick="toggleStatusDropdown()">
-            <span class="dot"></span>
-            <span id="statusLabel">Pending</span>
-            <span class="arrow">▾</span>
-          </div>
-          <div class="status-dropdown" id="statusDropdown">
-            <div class="sd-item" onclick="setStatus('pending')">
-              <span class="sd-dot sd-pending"></span> Pending
-            </div>
-            <div class="sd-item" onclick="setStatus('completed')">
-              <span class="sd-dot sd-completed"></span> Completed
-            </div>
-          </div>
-        </div>
+<h3>How the two streams run side by side</h3>
+<table>
+  <tr><th style="width:28%">Mechanism</th><th>How it works</th></tr>
+  <tr><td><b>Production stays on 7.4</b></td>
+      <td>All new waves, fixes and releases continue <b>exactly as today</b>, on the current branch and runtime. Customers see zero change until cutover.</td></tr>
+  <tr><td><b>Migration runs on its own branch</b></td>
+      <td>All migration work happens on a dedicated SVN branch — it never blocks or destabilizes a business release.</td></tr>
+  <tr><td><b>Weekly sync merges</b></td>
+      <td>The production branch is merged <em>into</em> the migration branch every week (owner: Dev A). Many small merges instead of one impossible big-bang merge at the end — this overhead is already inside the 6-month estimate.</td></tr>
+  <tr><td><b>Dual-build CI from Phase 0</b></td>
+      <td>From month 1, every new commit is automatically checked against the PHP 8.4 ruleset (<code>php -l</code> on 8.4 + PHPStan + Rector dry-run). New code that would break 8.4 is <b>flagged the day it is written</b>, not discovered at cutover.</td></tr>
+  <tr><td><b>Module ratchet in the template phase</b></td>
+      <td>Once a module's templates are converted (Phase 4 goes module by module), template edits in that module must use Smarty-5-safe syntax — enforced in code review, so finished modules stay finished.</td></tr>
+  <tr><td><b>Pre-cutover re-scan</b></td>
+      <td>Before final regression, the §4/§6 scans are re-run (PHPExcel usage, <code>==</code> compare sites, memcache calls…). Anything added during the 6 months is caught and folded into the review — nothing relies on the June snapshot staying true.</td></tr>
+  <tr><td><b>Short final freeze</b></td>
+      <td>Only the last <b>2–3 weeks</b> (final regression + UAT + cutover) restrict releases to critical fixes — agreed with management in advance, not sprung on the business.</td></tr>
+</table>
 
-        <button class="btn btn-reassign" onclick="alert('Reassign: change assigned user')">⇄ Reassign</button>
-        <button class="btn btn-save">💾 Save</button>
-        <button class="btn btn-new">✚ New</button>
-      </div>
+<h3>Rules for new 7.4 code — write it 8.4-safe starting now</h3>
+<p>Every wave written during the migration lands in production <em>before</em> the cutover <b>and</b>
+must survive it. These rules cost nothing when writing new code, and they shrink the migration
+instead of growing it. Enforced by code review today and by the Phase 0 CI check automatically.</p>
+<table>
+  <tr><th>Rule</th><th>Instead of</th><th>Write</th><th>Why</th></tr>
+  <tr><td><b>Strict comparison in money / status logic</b></td><td><code>$amount == 0</code>, <code>$status == ''</code></td><td><code>===</code> with the right type, cast first if needed</td><td>The PHP 8 silent-change trap — every new <code>==</code> grows the 889-site review pile</td></tr>
+  <tr><td><b>Guard nulls before string functions</b></td><td><code>trim($arrPost['x'])</code></td><td><code>trim($arrPost['x'] ?? '')</code></td><td>Deprecated in 8.1; error later</td></tr>
+  <tr><td><b>Declare every class property</b></td><td>Inventing <code>$this-&gt;newProp</code> on the fly</td><td>Declare it in the class</td><td>Dynamic properties deprecated in 8.2</td></tr>
+  <tr><td><b>Initialize variables, check array keys</b></td><td>Reading <code>$arr['k']</code> blind</td><td><code>isset()</code> / <code>?? default</code></td><td>8.x escalates these to warnings — log flood</td></tr>
+  <tr><td><b>No new PHPExcel code, no Smarty-2-only syntax</b></td><td>New <code>PHPExcel</code> exports, <code>{php}</code> blocks in templates</td><td>Existing export wrapper; Smarty-5-safe template subset</td><td>Don't grow the two biggest migration piles while we drain them</td></tr>
+  <tr><td><b>Cache only via the manager class</b></td><td>Direct <code>new Memcache()</code></td><td><code>MemCachedManager</code></td><td>The old extension is dead on 8.x</td></tr>
+  <tr><td><b>Banned constructs</b></td><td><code>each()</code>, <code>create_function()</code>, <code>$str{0}</code></td><td><code>foreach</code>, closures, <code>$str[0]</code></td><td>Removed in 8.0</td></tr>
+</table>
 
-      <!-- REPORT BUTTONS -->
-      <div class="btn-bar" id="reportBtns" style="display:none;">
-        <button class="btn btn-search">🔍 Search</button>
-        <button class="btn btn-clear">✕ Clear</button>
-      </div>
+<!-- ============ 9. Risks ============ -->
+<h2><span class="no">9</span>Risk register</h2>
+<table>
+  <tr><th>#</th><th>Risk</th><th>Severity</th><th>Why it is hard</th><th>Mitigation</th></tr>
+  <tr><td>1</td><td>No test suite on a 3.9M-LOC finance app</td><td><span class="status st-critical"><span class="dot"></span>Critical</span></td><td>Regressions are silent</td><td>Build a Playwright smoke-test harness early (TEST_PLAN.md); AI generates the cases</td></tr>
+  <tr><td>2</td><td>Silent <code>==</code>/<code>!=</code> behavior change in finance math</td><td><span class="status st-critical"><span class="dot"></span>Critical</span></td><td>Wrong money, no crash</td><td>AI-generated checklist (done) + senior manual review of all 889 sites</td></tr>
+  <tr><td>3</td><td>Smarty 2→5 across 2,055 templates</td><td><span class="status st-serious"><span class="dot"></span>High</span></td><td>Custom plugins; touches every screen</td><td>Phased per-module rollout, not big-bang</td></tr>
+  <tr><td>4</td><td>PHPExcel replacement (559 files)</td><td><span class="status st-serious"><span class="dot"></span>High</span></td><td>Styling / legacy-format / formula edge cases</td><td>Automated bulk conversion + human QA on styled workbooks</td></tr>
+  <tr><td>5</td><td>PDF visual regression</td><td><span class="status st-serious"><span class="dot"></span>High</span></td><td>Layouts not auto-verifiable</td><td>Manual visual diff per print format</td></tr>
+  <tr><td>6</td><td>Two half-finished library migrations already in the tree</td><td><span class="status st-warning"><span class="dot"></span>Medium</span></td><td>Easy to miss a code path</td><td>Consolidate to exactly one library each</td></tr>
+  <tr><td>7</td><td>Legacy code whose authors have left</td><td><span class="status st-warning"><span class="dot"></span>Medium</span></td><td>"What does this even do?"</td><td>AI code-archaeology + PRISM dossiers</td></tr>
+  <tr><td>8</td><td>Finance data sensitivity</td><td><span class="status st-warning"><span class="dot"></span>Medium</span></td><td>Cannot ship-and-see</td><td>Staging parallel-run before cutover</td></tr>
+  <tr><td>9</td><td>New development during the 6 months adds fresh incompatibilities</td><td><span class="status st-warning"><span class="dot"></span>Medium</span></td><td>The target moves while we migrate it</td><td>Weekly sync merges + 8.4 CI check on every new commit + 8.4-safe coding rules (§8) + pre-cutover re-scan</td></tr>
+</table>
 
-      <!-- HISTORY BUTTONS -->
-      <div class="btn-bar" id="historyBtns" style="display:none;">
-        <!-- no action buttons for history -->
-      </div>
-    </div>
+<!-- ============ 10. AI ============ -->
+<h2><span class="no">10</span>Where AI helps — and where it does not</h2>
+<table>
+  <tr><th>AI accelerates (big leverage)</th><th>Humans still own (no shortcut)</th></tr>
+  <tr><td>Automated code transforms — Rector rules for syntax fixes, PHPExcel renames, nullability</td><td>Finance <code>==</code> semantics — this is <em>intent</em>, not syntax</td></tr>
+  <tr><td>Code archaeology — explaining what legacy functions do</td><td>Visual verification of PDFs and Excel output</td></tr>
+  <tr><td>Generating risk checklists (the 889-site finance list already exists)</td><td>UAT and business sign-off</td></tr>
+  <tr><td>Drafting Smarty template conversions + smoke tests</td><td>Deciding which behavior changes are business-acceptable</td></tr>
+  <tr><td>Reviewing changes, finding missed call sites</td><td>Go-live / cutover judgment</td></tr>
+</table>
+<p>AI compresses the mechanical and discovery work by roughly a third — ~9–12 months without it
+becomes ~6 months with it. It does <b>not</b> shrink the regression-QA long pole; that is a
+consequence of having no automated tests, and is mitigated by building the smoke harness early.</p>
 
-    <!-- ============================================================
-         TAB 1 — RAISE A CASE
-    ============================================================ -->
-    <div id="raiseCase" class="tab-content active">
-      <div class="content-panel">
-        <div class="tabs"><div class="tab active">Case Details</div></div>
-        <div class="form-body">
+<!-- ============ 11. Team ============ -->
+<h2><span class="no">11</span>Team split (3 developers)</h2>
+<table>
+  <tr><th>Who</th><th>Owns</th></tr>
+  <tr><td><b>Dev A — senior / lead</b></td><td>Framework swap + zf1-future, Rector/CI pipeline, <b>the finance <code>==</code> review</b>, architecture decisions</td></tr>
+  <tr><td><b>Dev B</b></td><td>Export / print / integration libraries: PHPExcel, spout, PDF stack, mailer, phpseclib, memcache</td></tr>
+  <tr><td><b>Dev C</b></td><td>Smarty template migration + front-end regression + the Playwright test harness</td></tr>
+  <tr><td>Shared</td><td>Regression testing; <b>business users perform UAT</b> on finance outputs</td></tr>
+</table>
 
-          <div class="form-row">
-            <div class="field-pair">
-              <label>Case Number</label>
-              <input type="text" value="CASE-00001" readonly/>
-            </div>
-            <div class="field-pair">
-              <label>Assigned To <span class="req">*</span></label>
-              <div class="autocomplete-wrap">
-                <input type="text" placeholder="Type to search user…"/>
-              </div>
-            </div>
-          </div>
+<!-- ============ 12. Q&A ============ -->
+<h2><span class="no">12</span>Questions &amp; answers</h2>
+<p class="sub">The questions we expect from management and the team — answered from the evidence.</p>
 
-          <div class="form-row">
-            <div class="field-pair">
-              <label>Invoice Number <span class="req">*</span></label>
-              <div class="autocomplete-wrap">
-                <input type="text" placeholder="Type to search invoice…"/>
-              </div>
-            </div>
-            <div class="field-pair" style="visibility:hidden;">
-              <label></label><input type="text"/>
-            </div>
-          </div>
+<details>
+  <summary>Why not just rewrite the application in a modern framework (Laravel / Symfony)?</summary>
+  <div class="a"><p>Scale. This is ~3.9 million lines of code, 2,815 controllers, and 2,055 screens of
+  <b>working, revenue-critical finance logic</b>. Industry experience with rewrites of this size is
+  consistently multi-year and high-failure-risk, and during the rewrite the old system still needs
+  maintenance — double cost. The measured evidence says the framework is <em>not</em> the problem:
+  swapping to the maintained <code>zf1-future</code> fork costs 3 person-weeks and keeps 3,297 files
+  untouched. We spend the budget on the actual blockers (templates, Excel, finance semantics) instead
+  of re-typing what already works.</p></div>
+</details>
 
-          <div class="form-row">
-            <div class="field-pair" style="align-items:flex-start;">
-              <label style="padding-top:4px;">Case Description <span class="req">*</span></label>
-              <textarea placeholder="Enter case description…"></textarea>
-            </div>
-            <div class="field-pair" style="visibility:hidden;">
-              <label></label><input type="text"/>
-            </div>
-          </div>
+<details>
+  <summary>Is it safe to bet on <code>zf1-future</code> — a community fork?</summary>
+  <div class="a"><p>It is the lowest-risk option available. The fork is actively maintained, supports
+  PHP 7.4 through 8.4/8.5 (so we can adopt it <em>before</em> switching PHP versions), and keeps the
+  exact same class names. We vendor it into our tree like the current Zend copy, so even if the fork
+  stopped tomorrow we own the code and are no worse off than today — while gaining several years of
+  compatibility fixes. Phase 0 exists precisely to prove this bet with ~3–4 weeks of one developer's
+  time before any real money is committed.</p></div>
+</details>
 
-        </div>
-        <div class="form-footer">
-          <span>Created By : &nbsp;<strong>nucoreadmin</strong></span>
-          <span>Modified By : &nbsp;</span>
-        </div>
-      </div>
-    </div>
+<details>
+  <summary>Why is the template engine (Smarty) the single biggest cost?</summary>
+  <div class="a"><p>Smarty 2.6.22 (released ~2009) fatally breaks on modern PHP, and it renders
+  <b>every single screen</b> — all 2,055 templates, with no alternative view layer in the codebase.
+  Upgrading to Smarty 5 changes plugin APIs and some template syntax, so beyond the engine swap and
+  our 2 wrapper classes, every screen must be swept and visually regression-tested. The 14 pw is
+  mostly that verification, which is why it is phased per module (traacs → square → nucore) rather
+  than big-bang, and scheduled <em>last</em> — after cheaper phases have proven the platform.</p></div>
+</details>
 
-    <!-- ============================================================
-         TAB 2 — ISSUE REPORT
-    ============================================================ -->
-    <div id="issueReport" class="tab-content">
-      <div class="content-panel">
+<details>
+  <summary>What exactly is the "silent finance risk" and why can't a tool fix it?</summary>
+  <div class="a"><p>PHP 8.0 changed the result of loose comparisons between numbers and strings:
+  <code>0 == "ABC"</code> was <b>true</b> on our current PHP and is <b>false</b> on 8.x. Code like
+  <code>if ($status == 0)</code> where <code>$status</code> is sometimes a string can silently take
+  the other branch — in refund or tax math that means <b>wrong amounts with no error logged</b>.
+  A tool can find every such comparison (we already generated the list: 889 sites in 67 finance
+  files), but only a person who understands the business rule can decide whether each one should be
+  <code>===</code>, a cast, or left alone. That is why a senior developer owns this review and why
+  Refund — the worst concentration (207 in one file) — gets the most attention.</p></div>
+</details>
 
-        <div class="filter-area">
-          <div class="filter-row">
-            <div class="f-grp">
-              <label>Invoice Created User</label>
-              <input type="text" placeholder="User name…"/>
-            </div>
-            <div class="f-grp">
-              <label>Assigned User</label>
-              <input type="text" placeholder="Assigned to…"/>
-            </div>
-            <div class="f-grp">
-              <label>Invoice Number</label>
-              <input type="text" placeholder="Invoice no…"/>
-            </div>
-            <div class="f-grp">
-              <label>Customer</label>
-              <input type="text" placeholder="Customer name…"/>
-            </div>
-            <div class="f-grp">
-              <label>&nbsp;</label>
-              <button class="btn btn-search" style="height:26px;padding:0 14px;">Search</button>
-            </div>
-          </div>
-        </div>
+<details>
+  <summary>What happens if Phase 0 fails?</summary>
+  <div class="a"><p>We stop, having spent ~3–4 weeks of one developer instead of months of three.
+  Failure would mean the app does not boot on 8.4 with <code>zf1-future</code> for some structural
+  reason. Fallback options in that case: target an intermediate PHP version (8.1/8.2) where the fork
+  is also proven, evaluate the alternative ZF1 forks, or — only then — re-open the rewrite/replatform
+  discussion with hard evidence of why in-place failed. The plan is explicitly structured so this
+  worst case is cheap.</p></div>
+</details>
 
-        <table class="rtable">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Case Number</th>
-              <th>Assigned User</th>
-              <th>Created By</th>
-              <th>Invoice Number</th>
-              <th>Created Date</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>1</td>
-              <td><span class="tag">CASE-00001</span></td>
-              <td>John Doe</td>
-              <td>nucoreadmin</td>
-              <td>INV-2026-00123</td>
-              <td>20/04/2026</td>
-              <td><span class="tag tag-completed">Completed</span></td>
-            </tr>
-            <tr>
-              <td>2</td>
-              <td><span class="tag">CASE-00002</span></td>
-              <td>Jane Smith</td>
-              <td>Counter Staff</td>
-              <td>INV-2026-00187</td>
-              <td>20/04/2026</td>
-              <td><span class="tag tag-pending">Pending</span></td>
-            </tr>
-            <tr>
-              <td>3</td>
-              <td><span class="tag">CASE-00003</span></td>
-              <td>John Doe</td>
-              <td>nucoreadmin</td>
-              <td>INV-2026-00201</td>
-              <td>19/04/2026</td>
-              <td><span class="tag tag-pending">Pending</span></td>
-            </tr>
-          </tbody>
-        </table>
+<details>
+  <summary>How can we validate a finance system that has no automated tests?</summary>
+  <div class="a"><p>Three layers. (1) A <b>Playwright smoke-test harness</b> is built early
+  (Phase 0/1, plan already drafted in TEST_PLAN.md) covering the critical journeys — login, sale
+  entry, refund, invoice print, key reports — and runs against both PHP versions. (2) A
+  <b>staging parallel-run</b>: the same real-world operations executed on 7.4 and 8.4 builds, with
+  outputs (invoices, reports, postings) diffed. (3) <b>Business-user UAT</b> on finance outputs
+  before cutover. AI generates test cases quickly, but sign-off stays with people.</p></div>
+</details>
 
-      </div>
-    </div>
+<details>
+  <summary>Can this be done with fewer than 3 developers, or faster with more?</summary>
+  <div class="a"><p>Fewer: yes, but the timeline stretches roughly linearly on the mechanical work —
+  1 developer would push well past a year, and the finance review cannot be rushed. More: adding a
+  4th developer helps only modestly, because the long pole is regression QA and the phased Smarty
+  verification, which are limited by tester and business-user availability, not developer count.
+  Three devs with clear ownership (framework / libraries / templates) is the efficient shape.</p></div>
+</details>
 
-    <!-- ============================================================
-         TAB 3 — ASSIGNEE VIEW
-    ============================================================ -->
-    <div id="assigneeView" class="tab-content">
-      <div class="content-panel">
-        <div class="tabs"><div class="tab active">Assignee View — CASE-00001</div></div>
-        <div class="history-body">
+<details>
+  <summary>What does "person-week (pw)" mean, and how do 39 pw become 6 months?</summary>
+  <div class="a"><p>1 pw = one developer working one week. The library work totals 39.1 pw, but much
+  of it runs in parallel across the 3 developers, and the calendar also contains the finance review,
+  the test harness, and the regression/UAT tail that are not library work. Parallelized, the likely
+  calendar time is ~6 months; the 4.5–8 month range covers best case (few surprises in Phase 0/1)
+  to worst case (heavy template or Excel edge-case fallout).</p></div>
+</details>
 
-          <!-- CASE DETAIL SUMMARY -->
-          <div style="background:#fff;border:1px solid #dde3ea;border-radius:3px;padding:12px 16px;margin-bottom:18px;">
-            <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;">Case Details</div>
-            <div style="display:flex;gap:30px;flex-wrap:wrap;">
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Case Number</span>
-                <span style="font-weight:bold;color:#1a3a5c;font-size:13px;">CASE-00001</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Number</span>
-                <span style="font-weight:bold;color:#1a3a5c;">INV-2026-00123</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Assigned To</span>
-                <span style="font-weight:bold;color:#1a3a5c;">Sarah Connor</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Created By</span>
-                <span style="color:#555;">nucoreadmin</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Created Date</span>
-                <span style="color:#555;">20/04/2026 09:15 AM</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Status</span>
-                <span style="display:inline-flex;align-items:center;gap:5px;">
-                  <span style="width:8px;height:8px;border-radius:50%;background:#f9a825;display:inline-block;"></span>
-                  <span style="color:#f57f17;font-weight:bold;">Pending</span>
-                </span>
-              </div>
-            </div>
-            <div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee;">
-              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Case Description</span>
-              <div style="margin-top:4px;color:#444;font-size:12px;line-height:1.6;">
-                Customer has reported an issue with invoice INV-2026-00123 regarding incorrect charges on the hotel voucher booking. Needs urgent review.
-              </div>
-            </div>
-          </div>
+<details>
+  <summary>Will users see downtime or changed behavior?</summary>
+  <div class="a"><p>No functional changes are in scope — same screens, same workflows, same database
+  (PostgreSQL 16 is untouched). Cutover is prepared on staging with a parallel-run first, so the
+  production switch is a runtime swap with a tested rollback (the 7.4 container stays available).
+  The user-visible goal of this project is literally "nothing changed, and it is still supported."</p></div>
+</details>
 
-          <!-- INVOICE DETAILS (Assignee View) -->
-          <div style="background:#fff;border:1px solid #dde3ea;border-radius:3px;padding:12px 16px;margin-bottom:18px;">
-            <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;">Invoice Details</div>
-            <div style="display:flex;gap:30px;flex-wrap:wrap;">
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Number</span>
-                <span style="font-weight:bold;color:#1a3a5c;">INV-2026-00123</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:200px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Customer Name</span>
-                <span style="font-weight:bold;color:#1a3a5c;">Alpha Trading LLC</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Amount</span>
-                <span style="font-weight:bold;color:#1a3a5c;font-size:14px;">AED 3,250.00</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Date</span>
-                <span style="color:#555;">18/04/2026</span>
-              </div>
-            </div>
-          </div>
+<details>
+  <summary>What is the risk of doing nothing?</summary>
+  <div class="a"><p>PHP 7.4 has had <b>no security fixes since November 2022</b>. Every year adds:
+  unpatched CVE exposure on a finance system, growing incompatibility with OS images and libraries
+  (we already pin old containers), a shrinking pool of developers willing to work on Smarty 2-era
+  stacks, and a bigger eventual jump (the gap only widens). The cost of migration does not go down
+  by waiting — the risk premium goes up.</p></div>
+</details>
 
-          <!-- RESOLUTION INPUT -->
-          <div style="background:#fff;border:1px solid #dde3ea;border-radius:3px;padding:12px 16px;margin-bottom:18px;">
-            <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;">Assignee Response</div>
-            <div style="margin-bottom:10px;">
-              <label style="font-size:12px;color:#333;font-weight:bold;display:block;margin-bottom:5px;">
-                Solution / Action Taken
-              </label>
-              <textarea placeholder="Describe the solution or action taken for this case…"
-                style="width:100%;border:1px solid #b0bec5;border-radius:2px;padding:7px 9px;
-                font-size:12px;resize:vertical;height:70px;font-family:Arial,sans-serif;">
-              </textarea>
-            </div>
-            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
-              <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;color:#c0392b;font-weight:bold;">
-                <input type="checkbox" id="chkNotResolved" style="width:14px;height:14px;accent-color:#c0392b;cursor:pointer;"/>
-                Not Resolved — escalate further
-              </label>
-              <button class="btn btn-save" style="margin-left:auto;">💾 Save Response</button>
-            </div>
-          </div>
+<details>
+  <summary>Why do it in one jump to 8.4 instead of stepping through 8.1 → 8.2 → 8.4?</summary>
+  <div class="a"><p>The expensive breaking changes for this codebase all arrived in <b>PHP 8.0</b>
+  (comparison semantics, removed functions, library fatals). Once those are paid, 8.1→8.4 adds mostly
+  deprecation notices. Stepping through versions would repeat the most expensive part — full manual
+  regression of an untested finance app — at every step. One jump, one regression cycle.</p></div>
+</details>
 
-          <!-- CHANGE ASSIGNEE (Assignee View) -->
-          <div class="change-assignee-wrap">
-            <div class="ca-title">Change Assignee</div>
-            <div class="ca-row">
-              <label>Assign To :</label>
-              <div class="ca-autocomplete" id="avCaWrap">
-                <input type="text" id="avCaInput" placeholder="Type to search user\u2026" autocomplete="off" oninput="caFilter('av')" onfocus="caFilter('av')" onkeydown="caKeydown(event,'av')"/>
-                <div class="ca-suggestions" id="avCaSuggestions"></div>
-              </div>
-              <button class="btn btn-change-assign" onclick="caConfirm('av')">&#8644; Change Assignee</button>
-            </div>
-          </div>
+<details>
+  <summary>How was this estimate produced — can we trust the numbers?</summary>
+  <div class="a"><p>Not from memory or gut feel. The analysis ran against the live codebase: PRISM
+  (our internal code-knowledge base) for subsystem understanding, direct scans for every count in
+  this document (file counts, template counts, comparison sites), and an 11-agent AI audit that
+  checked each bundled library's pinned version against PHP 8.4 compatibility and counted real usage
+  sites. Notable result of doing it this way: the feared <code>each()</code> problem turned out to be
+  a scan artifact (6 real files, not thousands), and 742 controller subclasses turned out to be zero
+  effort. The estimate also carries an explicit range (4.5–8 months) rather than a single number.</p></div>
+</details>
 
-          <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;padding-left:30px;">Activity Log</div>
-          <div class="timeline">
+<details>
+  <summary>What are the milestones management can track?</summary>
+  <div class="a"><p>Each phase has a binary exit gate: <b>month 1</b> — app boots on 8.4 (GO/NO-GO);
+  <b>~month 2.5</b> — app loads with all load-time fatals cleared; <b>~month 3.5</b> — all Excel/report
+  exports verified; <b>~month 5</b> — finance math review complete; <b>month 5–6</b> — all screens
+  render on Smarty 5, regression + UAT pass, cutover. Progress is demonstrable at each gate, and
+  spend can be re-decided at each one — nothing is committed blind past month 1.</p></div>
+</details>
 
-            <!-- ITEM 1 -->
-            <div class="tl-item">
-              <div class="tl-dot green"></div>
-              <div class="tl-card">
-                <div class="tl-header">
-                  <span class="tl-action">Case Created</span>
-                  <span class="tl-time">20/04/2026 09:15 AM</span>
-                </div>
-                <div class="tl-detail">
-                  Case <strong>CASE-00001</strong> raised for invoice <strong>INV-2026-00123</strong>
-                </div>
-                <div class="tl-by">by nucoreadmin</div>
-              </div>
-            </div>
+<details>
+  <summary>The 5.6 → 7.4 upgrade was mostly done with scripts — why can't this one be?</summary>
+  <div class="a"><p>Because the breaks are of a different kind. The 5.6 → 7 changes were mostly
+  <b>removed functions with one-to-one replacements</b> — a script can find every occurrence, apply
+  the fix, and a missed spot crashes loudly on first use. The 8.x changes are mostly
+  <b>behavior changes</b>: the same line of code runs on both versions but returns a
+  <b>different answer</b> (loose comparisons, string↔number rules), and a wrong answer in refund math
+  produces no crash and no log line. A script can find every such line — we did, that is the
+  889-site list — but it cannot know the <em>business intent</em> of each one, and converting them
+  blindly would itself break working logic. On top of that, two whole libraries (Smarty 2, PHPExcel)
+  are dead on 8.x and their successors have different APIs — that is a migration with visual
+  verification, not a find-and-replace. The genuinely mechanical part of this jump <b>is</b> scripted
+  (Rector, Phase 0–1) — it is simply the small part this time. See §5 for the full comparison.</p></div>
+</details>
 
-            <!-- ITEM 2 -->
-            <div class="tl-item">
-              <div class="tl-dot orange"></div>
-              <div class="tl-card">
-                <div class="tl-header">
-                  <span class="tl-action">Assigned User Changed</span>
-                  <span class="tl-time">20/04/2026 10:32 AM</span>
-                </div>
-                <div class="tl-detail">
-                  Assigned from <span class="from">Jane Smith</span> → <span class="to">John Doe</span>
-                </div>
-                <div class="tl-by">by nucoreadmin</div>
-              </div>
-            </div>
+<details>
+  <summary>Development cannot stop for 6 months — how do new waves and fixes ship during the migration?</summary>
+  <div class="a"><p>They ship exactly as today. Production stays on the current 7.4 branch and release
+  process; the migration lives on its own SVN branch. The production branch is merged into the
+  migration branch <b>weekly</b> (owner: Dev A), so drift never accumulates into a big-bang merge.
+  From Phase 0, a dual-build CI check runs every new commit against the PHP 8.4 ruleset, so new work
+  that would break 8.4 is flagged the day it is written. Before final regression, all the §4/§6 scans
+  are re-run to fold in anything added during the 6 months. The only constraint on the business is a
+  <b>2–3 week freeze</b> (critical fixes only) at the very end, during final regression, UAT and
+  cutover — agreed in advance. Full mechanics in §8.</p></div>
+</details>
 
-            <!-- ITEM 3 -->
-            <div class="tl-item">
-              <div class="tl-dot"></div>
-              <div class="tl-card">
-                <div class="tl-header">
-                  <span class="tl-action">Description Updated</span>
-                  <span class="tl-time">20/04/2026 11:05 AM</span>
-                </div>
-                <div class="tl-detail">
-                  Case description was updated
-                </div>
-                <div class="tl-by">by John Doe</div>
-              </div>
-            </div>
+<details>
+  <summary>What must developers change in their day-to-day coding, starting today?</summary>
+  <div class="a"><p>Seven cheap habits that make every new wave 8.4-safe on arrival (table in §8):
+  use <code>===</code> instead of <code>==</code> in money and status checks; guard nulls before
+  string functions (<code>?? ''</code>); declare class properties instead of inventing them on the
+  fly; initialize variables and check array keys; write no new PHPExcel code and no Smarty-2-only
+  template syntax; use the cache manager class instead of direct Memcache; and avoid the removed
+  constructs (<code>each()</code>, <code>create_function()</code>, <code>$str{0}</code>). None of
+  these cost extra time when writing new code — they only stop the migration backlog from growing —
+  and the Phase 0 CI check enforces them automatically.</p></div>
+</details>
 
-            <!-- ITEM 4 -->
-            <div class="tl-item">
-              <div class="tl-dot orange"></div>
-              <div class="tl-card">
-                <div class="tl-header">
-                  <span class="tl-action">Reassigned</span>
-                  <span class="tl-time">20/04/2026 12:14 PM</span>
-                </div>
-                <div class="tl-detail">
-                  Assigned from <span class="from">John Doe</span> → <span class="to">Sarah Connor</span>
-                </div>
-                <div class="tl-by">by nucoreadmin</div>
-              </div>
-            </div>
+<details>
+  <summary>What do you need from management right now?</summary>
+  <div class="a"><p>Three things. (1) <b>Approval for Phase 0 only</b>: ~3–4 weeks, ~1 developer, to
+  prove the app boots on PHP 8.4 with <code>zf1-future</code>. (2) A commitment of <b>business-user
+  time for UAT</b> in months 5–6 (finance outputs must be signed off by the people who own them).
+  (3) Agreement on the <b>commit gate</b>: the big-ticket phases (Smarty, PHPExcel) are not funded
+  until Phase 0 is green. No other spend is requested today.</p></div>
+</details>
 
-            <!-- ITEM 5 -->
-            <div class="tl-item">
-              <div class="tl-dot green"></div>
-              <div class="tl-card">
-                <div class="tl-header">
-                  <span class="tl-action">Status Changed</span>
-                  <span class="tl-time">20/04/2026 03:45 PM</span>
-                </div>
-                <div class="tl-detail">
-                  Status changed from <span class="from">Pending</span> → <span class="to">Completed</span>
-                </div>
-                <div class="tl-by">by Sarah Connor</div>
-              </div>
-            </div>
+<!-- ============ 13. Recommendation ============ -->
+<h2><span class="no">13</span>Recommendation</h2>
+<div class="callout">
+  <p><b>Approve Phase 0 only</b> (~3–4 weeks, ~1 developer): stand up PHP 8.4, swap in
+  <code>zf1-future</code>, re-apply the 3 patches, and boot the application.</p>
+  <p>If it runs — the entire "stay on ZF1" plan is de-risked and we commit the remaining ~6-month
+  budget with confidence. If it fails — we have spent weeks, not months, before knowing, and we
+  choose a fallback with evidence in hand.</p>
+  <p style="margin-bottom:0"><b>Commit gate:</b> do not fund Smarty / PHPExcel until Phase 0 is green —
+  that is the single assumption the whole plan rests on.</p>
+</div>
+</section>
 
-          </div>
-        </div>
-      </div>
-    </div>
+<!-- ================= TAB 4 : PRISM STATUS ================= -->
+<section id="tab-prism" class="tab" data-print-title="Part 3 — PRISM Programme Status">
 
-    <!-- ============================================================
-         TAB 4 — USER VIEW
-    ============================================================ -->
-    <div id="userView" class="tab-content">
-      <div class="content-panel">
-        <div class="tabs"><div class="tab active">User View — CASE-00001</div></div>
-        <div class="history-body">
+<h2 style="border-top:none; padding-top:6px"><span class="no">P1</span>What PRISM is</h2>
+<p><b>PRISM is not a documentation effort — it is a productivity multiplier, an AI-enablement layer,
+and a risk-mitigation strategy.</b> It captures the TRAACS codebase (3.9M LOC) into a machine-readable
+knowledge base — per-subsystem dossiers plus greppable indexes — so AI assistants (Claude and Codex,
+vendor-neutral) answer from verified knowledge instead of spelunking raw code. Every code change runs
+through gated AI workflows: BRD → plan → approve → code → review, with the developer keeping full
+control and running every commit.</p>
+<table>
+  <tr><th>What it delivers</th><th>How</th></tr>
+  <tr><td><b>Faster change-request turnaround</b> (target 20–30%)</td><td>/feature-plan enumerates files-to-touch + cross-file dependencies before any edit</td></tr>
+  <tr><td><b>Fewer escaped defects / less rework</b></td><td>/feature-review gates every change against coding rules, cross-file matrix and known risk patterns before commit</td></tr>
+  <tr><td><b>Reduced SME bottleneck</b></td><td>Knowledge lives in dossiers, not only in individual heads; 24/7 AI-assisted engineering</td></tr>
+  <tr><td><b>Vendor independence</b></td><td>Plain markdown + shell-greppable TSV — works identically for Claude and Codex users</td></tr>
+</table>
 
-          <!-- CASE DETAIL SUMMARY (same as assignee view, read-only) -->
-          <div style="background:#fff;border:1px solid #dde3ea;border-radius:3px;padding:12px 16px;margin-bottom:18px;">
-            <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;">Case Details</div>
-            <div style="display:flex;gap:30px;flex-wrap:wrap;">
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Case Number</span>
-                <span style="font-weight:bold;color:#1a3a5c;font-size:13px;">CASE-00001</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Number</span>
-                <span style="font-weight:bold;color:#1a3a5c;">INV-2026-00123</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Assigned To</span>
-                <span style="font-weight:bold;color:#1a3a5c;">Sarah Connor</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Created By</span>
-                <span style="color:#555;">nucoreadmin</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Created Date</span>
-                <span style="color:#555;">20/04/2026 09:15 AM</span>
-              </div>
-              <!-- STATUS — user can change this -->
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Status</span>
-                <div class="status-wrap" style="display:inline-block;">
-                  <div class="status-btn pending" id="uvStatusBtn" onclick="toggleUvDropdown()" style="font-size:11px;padding:3px 10px;">
-                    <span class="dot"></span>
-                    <span id="uvStatusLabel">Pending</span>
-                    <span class="arrow">▾</span>
-                  </div>
-                  <div class="status-dropdown" id="uvStatusDropdown">
-                    <div class="sd-item" onclick="setUvStatus('pending')">
-                      <span class="sd-dot sd-pending"></span> Pending
-                    </div>
-                    <div class="sd-item" onclick="setUvStatus('completed')">
-                      <span class="sd-dot sd-completed"></span> Completed
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee;">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Case Description</span>
-                <button class="btn" id="uvDescEditBtn" onclick="uvDescEdit()" style="padding:2px 10px;font-size:11px;background:#e3f2fd;border-color:#64b5f6;color:#1565c0;">&#9998; Edit</button>
-              </div>
-              <!-- READ MODE -->
-              <div id="uvDescView" style="color:#444;font-size:12px;line-height:1.6;">
-                Customer has reported an issue with invoice INV-2026-00123 regarding incorrect charges on the hotel voucher booking. Needs urgent review.
-              </div>
-              <!-- EDIT MODE (hidden by default) -->
-              <div id="uvDescEditArea" style="display:none;">
-                <textarea id="uvDescTextarea" style="width:100%;border:1px solid #2a6496;border-radius:2px;padding:7px 9px;font-size:12px;line-height:1.6;resize:vertical;height:70px;font-family:Arial,sans-serif;outline:none;">Customer has reported an issue with invoice INV-2026-00123 regarding incorrect charges on the hotel voucher booking. Needs urgent review.</textarea>
-                <div style="display:flex;gap:8px;margin-top:6px;">
-                  <button class="btn btn-save" style="padding:3px 14px;font-size:11px;" onclick="uvDescSave()">&#10003; Save</button>
-                  <button class="btn btn-clear" style="padding:3px 14px;font-size:11px;" onclick="uvDescCancel()">&#10005; Cancel</button>
-                </div>
-              </div>
-            </div>
-          </div>
+<div class="tiles">
+  <div class="tile"><div class="v">8,002</div><div class="l">Classes indexed (83,784 methods, 666 controllers) — greppable in one command</div></div>
+  <div class="tile"><div class="v">11</div><div class="l">Machine indexes (classes, columns, AJAX endpoints, settings, migrations…)</div></div>
+  <div class="tile"><div class="v">564</div><div class="l">Past waves audited for knowledge coverage — all 776 found gaps closed</div></div>
+  <div class="tile"><div class="v">−40%</div><div class="l">Token cost per AI lookup after optimisation round 1 (round 2 in progress)</div></div>
+</div>
 
-          <!-- INVOICE DETAILS (User View) -->
-          <div style="background:#fff;border:1px solid #dde3ea;border-radius:3px;padding:12px 16px;margin-bottom:18px;">
-            <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;">Invoice Details</div>
-            <div style="display:flex;gap:30px;flex-wrap:wrap;">
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Number</span>
-                <span style="font-weight:bold;color:#1a3a5c;">INV-2026-00123</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:200px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Customer Name</span>
-                <span style="font-weight:bold;color:#1a3a5c;">Alpha Trading LLC</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Amount</span>
-                <span style="font-weight:bold;color:#1a3a5c;font-size:14px;">AED 3,250.00</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-                <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Date</span>
-                <span style="color:#555;">18/04/2026</span>
-              </div>
-            </div>
-          </div>
+<h2><span class="no">P2</span>What is built — foundation 100% complete (16 Jun 2026)</h2>
+<table>
+  <tr><th>Component</th><th>Status</th><th>What it is</th></tr>
+  <tr><td><b>Rules &amp; workflow gates</b></td><td><span class="status st-good"><span class="dot"></span>Done</span></td><td>ENTRY rules, coding rules, cross-file matrix, BRD→plan→approve→review pipeline with edit/commit gates</td></tr>
+  <tr><td><b>Scanner &amp; indexes</b></td><td><span class="status st-good"><span class="dot"></span>Done</span></td><td>AST scanner over 8,405 files → 11 TSV indexes incl. every table column, AJAX endpoint→controller map, 4,850 migrations; incremental re-scan</td></tr>
+  <tr><td><b>Subsystem dossiers</b></td><td><span class="status st-good"><span class="dot"></span>Done + live upkeep</span></td><td>Per-subsystem knowledge files (sale, refund, tax, posting, bank reco, accounting engine…); daily watcher agents gap-check new commits automatically</td></tr>
+  <tr><td><b>Module relation graph</b></td><td><span class="status st-good"><span class="dot"></span>Done</span></td><td>314 edges / 119 nodes / 115 action→effect cascades across PHP+JS+SQL — "what breaks if I change X"</td></tr>
+  <tr><td><b>API ecosystem docs</b></td><td><span class="status st-good"><span class="dot"></span>Done</span></td><td>40 external API endpoints documented end-to-end with per-segment flow traces</td></tr>
+  <tr><td><b>Team distribution</b></td><td><span class="status st-good"><span class="dot"></span>Done</span></td><td>Own SVN repo, one-command install, auto-update hooks, freshness gate (stale knowledge blocks itself); team rollout done — Claude and Codex colleagues</td></tr>
+  <tr><td><b>Q&amp;A chat bot</b></td><td><span class="status st-good"><span class="dot"></span>Done</span></td><td>Google Chat bot answering PRISM/WAVE questions for the team</td></tr>
+  <tr><td><b>Operator skills</b></td><td><span class="status st-good"><span class="dot"></span>Done</span></td><td><b>Query runner</b> — applies a wave's pending DB corrections to a chosen live DB (skips already-applied via the update ledger, then reloads functions + views); <b>DB finder</b> — locates a Postgres DB across all dev hosts and wires the encrypted host+dbname into application.ini; <b>Caveman mode</b> — opt-in token-saving reply style that cuts AI output cost 30–60% when enabled</td></tr>
+</table>
 
-          <!-- SOLUTION GIVEN (read-only — filled by assignee) -->
-          <div style="background:#fff;border:1px solid #dde3ea;border-radius:3px;padding:12px 16px;margin-bottom:18px;">
-            <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;">
-              Solution Given &nbsp;<span style="background:#e3f2fd;color:#1565c0;font-size:10px;padding:2px 8px;border-radius:10px;text-transform:none;letter-spacing:0;font-weight:normal;">by Assignee</span>
-            </div>
-            <div style="background:#f9f9f9;border:1px solid #e0e0e0;border-radius:2px;padding:9px 12px;color:#444;font-size:12px;line-height:1.6;min-height:60px;">
-              Reviewed the hotel voucher. The extra charge was due to a late check-out fee applied by the supplier. Coordinated with supplier and issued a credit note. Invoice corrected.
-            </div>
-            <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
-              <input type="checkbox" disabled style="width:14px;height:14px;accent-color:#c0392b;"/>
-              <span style="font-size:12px;color:#c0392b;font-weight:bold;">Not Resolved — escalate further</span>
-              <span style="font-size:11px;color:#aaa;margin-left:6px;">(set by assignee)</span>
-            </div>
-          </div>
+<div class="viz-root">
+  <p class="viz-title">Programme completion by workstream (estimated)</p>
+  <p class="viz-sub">Foundation streams are complete; current effort is proving quality, cutting token cost, and driving adoption.<span class="hover-hint"> Hover a bar for detail.</span></p>
+  <div class="e-row"><div class="e-label">Foundation (rules/gates/skills)</div><div class="e-track"><div class="e-bar" style="width:100%"><span class="tip"><b>100%</b> — all planned items complete 16 Jun 2026</span></div><span class="e-val" style="left:calc(100% - 52px); color:#fff;">100%</span></div></div>
+  <div class="e-row"><div class="e-label">Indexes &amp; scanner</div><div class="e-track"><div class="e-bar" style="width:100%"><span class="tip"><b>100%</b> of Tier-1 scope — Tier 2–5 index ideas remain backlog</span></div><span class="e-val" style="left:calc(100% - 52px); color:#fff;">100%</span></div></div>
+  <div class="e-row"><div class="e-label">Knowledge coverage</div><div class="e-track"><div class="e-bar" style="width:95%"><span class="tip"><b>~95%</b> — 564-wave audit gaps all closed; daily watchers keep it current</span></div><span class="e-val" style="left:calc(95% + 8px)">~95%</span></div></div>
+  <div class="e-row"><div class="e-label">Distribution &amp; tooling</div><div class="e-track"><div class="e-bar" style="width:100%"><span class="tip"><b>100%</b> — SVN repo, installer, freshness gate, bot; rollout done</span></div><span class="e-val" style="left:calc(100% - 52px); color:#fff;">100%</span></div></div>
+  <div class="e-row"><div class="e-label">Quality validation</div><div class="e-track"><div class="e-bar" style="width:70%"><span class="tip"><b>~70%</b> — buildability benchmark run + all gaps closed; re-benchmark pending</span></div><span class="e-val" style="left:calc(70% + 8px)">~70%</span></div></div>
+  <div class="e-row"><div class="e-label">Token-cost optimisation</div><div class="e-track"><div class="e-bar" style="width:50%"><span class="tip"><b>~50%</b> — rounds 1–2 of 4 proven (−40% median); recipes + section maps left</span></div><span class="e-val" style="left:calc(50% + 8px)">~50%</span></div></div>
+  <div class="e-row"><div class="e-label">Adoption telemetry</div><div class="e-track"><div class="e-bar" style="width:80%"><span class="tip"><b>~80%</b> — usage analyser + daily audit live 2 Jul 2026; getting all reporters green</span></div><span class="e-val" style="left:calc(80% + 8px)">~80%</span></div></div>
+</div>
 
-          <!-- CHANGE ASSIGNEE (User View) -->
-          <div class="change-assignee-wrap">
-            <div class="ca-title">Change Assignee</div>
-            <div class="ca-row">
-              <label>Assign To :</label>
-              <div class="ca-autocomplete" id="uvCaWrap">
-                <input type="text" id="uvCaInput" placeholder="Type to search user\u2026" autocomplete="off" oninput="caFilter('uv')" onfocus="caFilter('uv')" onkeydown="caKeydown(event,'uv')"/>
-                <div class="ca-suggestions" id="uvCaSuggestions"></div>
-              </div>
-              <button class="btn btn-change-assign" onclick="caConfirm('uv')">&#8644; Change Assignee</button>
-            </div>
-          </div>
+<h2><span class="no">P3</span>What we are doing right now (Jun–Jul 2026)</h2>
+<table>
+  <tr><th>Active work</th><th>State</th></tr>
+  <tr><td><b>Proving PRISM can BUILD, not just describe</b> — a validation pipeline rebuilds real past waves from PRISM knowledge alone and diffs against the real code. Full 564-wave simulation: 48% fully buildable at baseline; every identified knowledge gap (776) was then closed — 132 dossiers updated, 8 new ones authored.</td><td><span class="status st-warning"><span class="dot"></span>Re-benchmark pending</span></td></tr>
+  <tr><td><b>Token-cost optimisation round 2</b> — round 1 (routing indexes + section-slice reads) proved −40% median tokens per lookup; remaining: cross-cutting task recipes and per-dossier section maps.</td><td><span class="status st-warning"><span class="dot"></span>In progress</span></td></tr>
+  <tr><td><b>Adoption telemetry</b> — the analyser now ships anonymous usage metrics automatically with every PRISM update; a daily audit shows who is current vs stale. First audit exposed a distribution bug (silent reporters since mid-June) — fixed 2 Jul 2026, verifying recovery.</td><td><span class="status st-warning"><span class="dot"></span>Live, stabilising</span></td></tr>
+  <tr><td><b>Continuous coverage</b> — daily watcher agents gap-check every new commit against the dossiers and author missing coverage; monthly sweeps (last: 87 tickets, 80% already covered, 17 gaps fixed same day).</td><td><span class="status st-good"><span class="dot"></span>Running</span></td></tr>
+</table>
 
-          <!-- ACTIVITY LOG (same timeline, read-only) -->
-          <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;padding-left:30px;">Activity Log</div>
-          <div class="timeline">
+<h2><span class="no">P4</span>What is left</h2>
+<ul>
+  <li><b>Raise buildability from 48% to 70%</b> — concrete phased plan in §P5 below.</li>
+  <li><b>Finish token optimisation</b> (2 of 4 components left) — matters most for Codex Plus colleagues with tight token budgets.</li>
+  <li><b>Backlog index tiers</b> — caller→callee map, JS function index, SQL function symmetry checker, known-risk-pattern greps, diff summariser, output-compression conventions (prioritised by ROI, unscheduled).</li>
+  <li><b>Adoption to 100%</b> — all team reporters green in the daily usage audit; harvest developer-reported gaps weekly.</li>
+  <li><b>Housekeeping</b> — promote pending branch work up the 3-repo chain; index PHP traits (known scanner gap); close the open design decisions (review-blocking policy, doc lifecycle).</li>
+</ul>
 
-            <div class="tl-item">
-              <div class="tl-dot green"></div>
-              <div class="tl-card">
-                <div class="tl-header">
-                  <span class="tl-action">Case Created</span>
-                  <span class="tl-time">20/04/2026 09:15 AM</span>
-                </div>
-                <div class="tl-detail">Case <strong>CASE-00001</strong> raised for invoice <strong>INV-2026-00123</strong></div>
-                <div class="tl-by">by nucoreadmin</div>
-              </div>
-            </div>
+<h2><span class="no">P5</span>Path to 70% buildable — the plan</h2>
+<p><b>The metric:</b> the validation pipeline rebuilds real past waves using PRISM knowledge alone and
+diffs the result against the code that actually shipped. Baseline (22–23 Jun 2026, 564 waves):
+<b>48% fully buildable</b>. Since that measurement, all 776 identified knowledge gaps were closed —
+but the benchmark has not been re-run, so the true current score is already higher. The gap analysis
+says where the remaining failures live: <b>controllers = 47% of all gaps, view-JS = 21%</b> — and most
+failures are <em>systemic</em> (one wrong pattern document fails many waves), so fixing pattern docs
+lifts the score in batches, not wave by wave.</p>
 
-            <div class="tl-item">
-              <div class="tl-dot orange"></div>
-              <div class="tl-card">
-                <div class="tl-header">
-                  <span class="tl-action">Assigned User Changed</span>
-                  <span class="tl-time">20/04/2026 10:32 AM</span>
-                </div>
-                <div class="tl-detail">Assigned from <span class="from">Jane Smith</span> → <span class="to">John Doe</span></div>
-                <div class="tl-by">by nucoreadmin</div>
-              </div>
-            </div>
+<table>
+  <tr><th>Phase</th><th>What we do</th><th>Expected effect</th></tr>
+  <tr><td><b>1 — Land &amp; re-measure</b> (week 1)</td>
+      <td>Commit the already-fixed systemic pattern docs (model mapper / controller / menu-insert — 14 edits + 2 new dossiers pending review); exclude self-referencing dossiers from scoring so the number is honest; re-run the benchmark on a stratified ~100-wave sample.</td>
+      <td>True post-gap-closure baseline — expected <b>~55–60%</b> without new work</td></tr>
+  <tr><td><b>2 — Kill the two big gap classes</b> (weeks 2–3)</td>
+      <td><b>Controller build recipes</b> — one per archetype (CRUD screen, report, AJAX-only, print) with exact TRAACS conventions, each verified against 10 known-good controllers. <b>View-JS recipes</b> — the recurring patterns (grid add/edit rows, tab loaders, AJAX save + success-key contract, validation wiring). Feed every "builder had to fall back to raw code" log line into the gap-builder agent queue.</td>
+      <td>Controllers + JS = 68% of all gaps; recipes attack them in batches → <b>~65%+</b></td></tr>
+  <tr><td><b>3 — Iterate to target</b> (weeks 3–5)</td>
+      <td>Loop the existing agent pipeline: sample-run (100 waves) → gap-analyse → gap-build → audit. Each loop ≈ one day of agent time. Exit: sample ≥70% in two consecutive rounds → full 564-wave re-run for the official number.</td>
+      <td><b>≥70% confirmed</b> on the full set</td></tr>
+  <tr><td><b>4 — Hold the line</b> (ongoing)</td>
+      <td>Daily watcher agents already author coverage for each new commit; add a monthly buildability spot-check (rebuild 5 random new waves) so the score can't silently decay.</td>
+      <td>70% stays 70%</td></tr>
+</table>
 
-            <div class="tl-item">
-              <div class="tl-dot"></div>
-              <div class="tl-card">
-                <div class="tl-header">
-                  <span class="tl-action">Description Updated</span>
-                  <span class="tl-time">20/04/2026 11:05 AM</span>
-                </div>
-                <div class="tl-detail">Case description was updated</div>
-                <div class="tl-by">by John Doe</div>
-              </div>
-            </div>
+<p class="sub"><b>Effort:</b> almost fully agent-automated — the builder / gap-analyser / gap-builder /
+audit pipeline already exists; operator time ≈ 2–4 h/week for reviewing authored dossiers.
+<b>Known ceiling:</b> some waves are inherently not buildable from knowledge alone (one-off data
+patches, external-partner integrations) — phase 1 classifies those as out-of-scope so 70% is measured
+on waves PRISM can fairly be expected to build. If phase 2 lands below 65%, the next gap class
+(Smarty/tpl patterns) gets the same recipe treatment.</p>
 
-            <div class="tl-item">
-              <div class="tl-dot orange"></div>
-              <div class="tl-card">
-                <div class="tl-header">
-                  <span class="tl-action">Reassigned</span>
-                  <span class="tl-time">20/04/2026 12:14 PM</span>
-                </div>
-                <div class="tl-detail">Assigned from <span class="from">John Doe</span> → <span class="to">Sarah Connor</span></div>
-                <div class="tl-by">by nucoreadmin</div>
-              </div>
-            </div>
+<div class="callout">
+  <b>Where PRISM meets the other two plans:</b> the PHP 8.4 migration leans on PRISM for code
+  archaeology, the finance-comparison checklist and impact analysis (§5/§7 of the migration plan);
+  the QA automation agent reads PRISM's UI map for selectors and success signals. PRISM is funded by
+  neither — it is the standing engineering-productivity programme underneath both.
+</div>
 
-            <div class="tl-item">
-              <div class="tl-dot green"></div>
-              <div class="tl-card">
-                <div class="tl-header">
-                  <span class="tl-action">Status Changed</span>
-                  <span class="tl-time">20/04/2026 03:45 PM</span>
-                </div>
-                <div class="tl-detail">Status changed from <span class="from">Pending</span> → <span class="to">Completed</span></div>
-                <div class="tl-by">by Sarah Connor</div>
-              </div>
-            </div>
+</section>
 
-          </div>
-        </div>
-      </div>
-    </div>
+<!-- ================= TAB 5 : TEAM AI WORKS ================= -->
+<section id="tab-aiworks" class="tab" data-print-title="Part 4 — Team AI Works">
 
-  <!-- ============================================================
-       TAB 5 — READ ONLY VIEW
-  ============================================================ -->
-  <div id="readOnlyView" class="tab-content">
-    <div class="content-panel">
-      <div class="tabs"><div class="tab active">Read Only View — CASE-00001</div></div>
-      <div class="history-body">
+<h2 style="border-top:none; padding-top:6px"><span class="no">W1</span>Team AI initiatives — who is building what</h2>
+<p>Beyond PRISM and the two plans, each team member is applying AI to a real pain point they own.
+These are individual, owner-driven initiatives — small tools that remove recurring friction from the
+daily workflow.</p>
 
-        <!-- CASE DETAILS (all disabled) -->
-        <div style="background:#fff;border:1px solid #dde3ea;border-radius:3px;padding:12px 16px;margin-bottom:18px;">
-          <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;">Case Details</div>
-          <div style="display:flex;gap:30px;flex-wrap:wrap;">
-            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Case Number</span>
-              <span style="font-weight:bold;color:#1a3a5c;font-size:13px;">CASE-00001</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Number</span>
-              <span style="font-weight:bold;color:#1a3a5c;">INV-2026-00123</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Assigned To</span>
-              <span style="font-weight:bold;color:#1a3a5c;">Sarah Connor</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Created By</span>
-              <span style="color:#555;">nucoreadmin</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Created Date</span>
-              <span style="color:#555;">20/04/2026 09:15 AM</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Status</span>
-              <span style="display:inline-flex;align-items:center;gap:5px;">
-                <span style="width:8px;height:8px;border-radius:50%;background:#f9a825;display:inline-block;"></span>
-                <span style="color:#f57f17;font-weight:bold;">Pending</span>
-              </span>
-            </div>
-          </div>
-          <!-- CASE DESCRIPTION (read-only textarea, disabled) -->
-          <div style="margin-top:10px;padding-top:10px;border-top:1px solid #eee;">
-            <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Case Description</span>
-            <textarea disabled rows="3"
-              style="width:100%;margin-top:5px;border:1px solid #e0e0e0;border-radius:2px;padding:7px 9px;
-              font-size:12px;line-height:1.6;resize:none;font-family:Arial,sans-serif;
-              background:#f5f5f5;color:#555;cursor:not-allowed;">Customer has reported an issue with invoice INV-2026-00123 regarding incorrect charges on the hotel voucher booking. Needs urgent review.</textarea>
-          </div>
-        </div>
+<table>
+  <tr><th>Owner</th><th>Initiative</th><th>The pain it removes</th></tr>
+  <tr><td><b>Arun</b></td>
+      <td><b>AI-based file-replacement creator</b></td>
+      <td>Assembling the changed-file replacement package for a release is manual and error-prone —
+      the tool builds the replacement set automatically from the committed work, so nothing is
+      missed or stale when it goes to release.</td></tr>
+  <tr><td><b>Sreelakshmi</b></td>
+      <td><b>AI conflict guard — pre-commit &amp; pre-release check</b></td>
+      <td>The big one: when two colleagues work on the same file or module, the clash surfaces only
+      at commit or release time as conflicts and broken code. The AI check compares concurrent work
+      on the same files/modules <em>before commit</em> and again <em>before release handover</em> —
+      a chance to catch the collision early and cut released bugs.</td></tr>
+  <tr><td><b>Ramya</b></td>
+      <td><b>AI diagnosis of the stuck-merge script</b></td>
+      <td>A long-standing headache: the merge script gets stuck with no result and no clue why.
+      Using AI to find the root issue and recreate the script so merges stop being a dead end.</td></tr>
+  <tr><td><b>Raniya</b></td>
+      <td><b>AI environment / version switcher scripts</b></td>
+      <td>Checking out a specific version for testing, or switching between checkouts, meant fighting
+      public-folder permissions and port wiring every time. AI-generated scripts make the checkout or
+      switch one command — permissions and ports handled automatically, nothing to worry about.</td></tr>
+  <tr><td><b>Jishnu</b></td>
+      <td><b>Unit-test framework evaluation (PHPUnit vs Pest)</b></td>
+      <td>TRAACS has effectively no automated tests — the #1 risk in the migration plan. AI-assisted
+      analysis of PHPUnit and Pest to pick the right framework for the codebase, so unit testing can
+      finally start on solid footing.</td></tr>
+  <tr><td><b>Aneeta</b></td>
+      <td><b>Shared query library</b></td>
+      <td>The SQL queries used to solve bugs and ad-hoc requests kept being rewritten from scratch.
+      One curated collection, in one place — next time the query already exists.</td></tr>
+</table>
 
-        <!-- INVOICE DETAILS (disabled) -->
-        <div style="background:#fff;border:1px solid #dde3ea;border-radius:3px;padding:12px 16px;margin-bottom:18px;">
-          <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;">Invoice Details</div>
-          <div style="display:flex;gap:30px;flex-wrap:wrap;">
-            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Number</span>
-              <span style="font-weight:bold;color:#1a3a5c;">INV-2026-00123</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:3px;min-width:200px;">
-              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Customer Name</span>
-              <span style="font-weight:bold;color:#1a3a5c;">Alpha Trading LLC</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Amount</span>
-              <span style="font-weight:bold;color:#1a3a5c;font-size:14px;">AED 3,250.00</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:3px;min-width:160px;">
-              <span style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:0.5px;">Invoice Date</span>
-              <span style="color:#555;">18/04/2026</span>
-            </div>
-          </div>
-        </div>
+<div class="callout">
+  <b>How these fit the bigger picture:</b> Sreelakshmi&#8217;s conflict guard and Arun&#8217;s release packager
+  harden the commit&#8594;release pipeline the PHP 8.4 migration will lean on; Jishnu&#8217;s framework pick is
+  the first step toward closing the migration&#8217;s #1 risk (no tests); Ramya&#8217;s and Raniya&#8217;s tooling cuts
+  daily friction for everyone; Aneeta&#8217;s library compounds — every solved problem stays solved.
+  PRISM (menu 3) provides the shared knowledge layer all of them draw on.
+</div>
 
-        <!-- SOLUTION GIVEN (disabled textarea) -->
-        <div style="background:#fff;border:1px solid #dde3ea;border-radius:3px;padding:12px 16px;margin-bottom:18px;">
-          <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;">
-            Solution Given &nbsp;<span style="background:#e3f2fd;color:#1565c0;font-size:10px;padding:2px 8px;border-radius:10px;text-transform:none;letter-spacing:0;font-weight:normal;">by Assignee</span>
-          </div>
-          <textarea disabled rows="4"
-            style="width:100%;border:1px solid #e0e0e0;border-radius:2px;padding:9px 12px;
-            font-size:12px;line-height:1.6;resize:none;font-family:Arial,sans-serif;
-            background:#f5f5f5;color:#555;cursor:not-allowed;">Reviewed the hotel voucher. The extra charge was due to a late check-out fee applied by the supplier. Coordinated with supplier and issued a credit note. Invoice corrected.</textarea>
-          <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
-            <input type="checkbox" disabled style="width:14px;height:14px;accent-color:#c0392b;"/>
-            <span style="font-size:12px;color:#c0392b;font-weight:bold;">Not Resolved &mdash; escalate further</span>
-            <span style="font-size:11px;color:#aaa;margin-left:6px;">(set by assignee)</span>
-          </div>
-        </div>
+</section>
 
-        <!-- ACTIVITY LOG (read-only) -->
-        <div style="font-size:11px;text-transform:uppercase;color:#888;letter-spacing:1px;margin-bottom:10px;font-weight:bold;padding-left:30px;">Activity Log</div>
-        <div class="timeline">
 
-          <div class="tl-item">
-            <div class="tl-dot green"></div>
-            <div class="tl-card">
-              <div class="tl-header"><span class="tl-action">Case Created</span><span class="tl-time">20/04/2026 09:15 AM</span></div>
-              <div class="tl-detail">Case <strong>CASE-00001</strong> raised for invoice <strong>INV-2026-00123</strong></div>
-              <div class="tl-by">by nucoreadmin</div>
-            </div>
-          </div>
 
-          <div class="tl-item">
-            <div class="tl-dot orange"></div>
-            <div class="tl-card">
-              <div class="tl-header"><span class="tl-action">Assigned User Changed</span><span class="tl-time">20/04/2026 10:32 AM</span></div>
-              <div class="tl-detail">Assigned from <span class="from">Jane Smith</span> &rarr; <span class="to">John Doe</span></div>
-              <div class="tl-by">by nucoreadmin</div>
-            </div>
-          </div>
 
-          <div class="tl-item">
-            <div class="tl-dot"></div>
-            <div class="tl-card">
-              <div class="tl-header"><span class="tl-action">Description Updated</span><span class="tl-time">20/04/2026 11:05 AM</span></div>
-              <div class="tl-detail">Case description was updated</div>
-              <div class="tl-by">by John Doe</div>
-            </div>
-          </div>
+</div>
+</div>
 
-          <div class="tl-item">
-            <div class="tl-dot orange"></div>
-            <div class="tl-card">
-              <div class="tl-header"><span class="tl-action">Reassigned</span><span class="tl-time">20/04/2026 12:14 PM</span></div>
-              <div class="tl-detail">Assigned from <span class="from">John Doe</span> &rarr; <span class="to">Sarah Connor</span></div>
-              <div class="tl-by">by nucoreadmin</div>
-            </div>
-          </div>
+<footer>
+  TRAACS combined program plan — PHP 7.4 → 8.4 migration + UI smoke-test automation · 2 Jul 2026 ·
+  sources: PHP8_MIGRATION_PLAN.md · TEST_PLAN.md · single self-contained file (all CSS/JS inline).
+</footer>
 
-          <div class="tl-item">
-            <div class="tl-dot green"></div>
-            <div class="tl-card">
-              <div class="tl-header"><span class="tl-action">Status Changed</span><span class="tl-time">20/04/2026 03:45 PM</span></div>
-              <div class="tl-detail">Status changed from <span class="from">Pending</span> &rarr; <span class="to">Completed</span></div>
-              <div class="tl-by">by Sarah Connor</div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </div>
-
-  </div><!-- end #main -->
-</div><!-- end #wrap -->
-
+</div>
 <script>
-  // Sidebar navigation
-  document.querySelectorAll('.side-link').forEach(function(link) {
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-      var tab = this.getAttribute('data-tab');
-      document.querySelectorAll('.side-link').forEach(l => l.classList.remove('active'));
-      this.classList.add('active');
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      document.getElementById(tab).classList.add('active');
-      document.getElementById('raiseCaseBtns').style.display = (tab === 'raiseCase')   ? 'flex' : 'none';
-      document.getElementById('reportBtns').style.display    = (tab === 'issueReport') ? 'flex' : 'none';
-      document.getElementById('historyBtns').style.display   = (tab === 'assigneeView' || tab === 'userView' || tab === 'readOnlyView') ? 'flex' : 'none';
+  // ---- parts, menus, side menu ----
+  var parts = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  var menus = Array.prototype.slice.call(document.querySelectorAll('.menu'));
+  var sidenav = document.getElementById('sidenav');
+  var spy = null;
+
+  // pre-assign ids to every section heading (stable hash targets)
+  parts.forEach(function (sec) {
+    Array.prototype.slice.call(sec.querySelectorAll('h2')).forEach(function (h, i) {
+      if (!h.id) h.id = sec.id + '-s' + i;
     });
   });
 
-  // Status dropdown toggle
-  function toggleStatusDropdown() {
-    document.getElementById('statusDropdown').classList.toggle('open');
+  function labelFor(h) {
+    var no = h.querySelector('.no');
+    var label = h.textContent.trim();
+    if (no) label = no.textContent.trim() + ' · ' + label.slice(no.textContent.length).trim();
+    return h.id === 'live-demo' ? '▶ ' + label : label;
   }
-
-  // Set status
-  function setStatus(val) {
-    var btn = document.getElementById('statusBtn');
-    var lbl = document.getElementById('statusLabel');
-    btn.className = 'status-btn ' + val;
-    lbl.textContent = val.charAt(0).toUpperCase() + val.slice(1);
-    document.getElementById('statusDropdown').classList.remove('open');
+  function setCurrent(id) {
+    Array.prototype.slice.call(sidenav.querySelectorAll('a')).forEach(function (a) {
+      a.classList.toggle('current', a.getAttribute('href') === '#' + id);
+    });
   }
-
-  // User View status dropdown
-  function toggleUvDropdown() {
-    document.getElementById('uvStatusDropdown').classList.toggle('open');
+  function initSpy(sec) {
+    if (spy) spy.disconnect();
+    if (!window.IntersectionObserver) return;
+    spy = new IntersectionObserver(function (es) {
+      es.forEach(function (en) { if (en.isIntersecting) setCurrent(en.target.id); });
+    }, { rootMargin: '-70px 0px -70% 0px' });
+    Array.prototype.slice.call(sec.querySelectorAll('h2')).forEach(function (h) { spy.observe(h); });
   }
-  function setUvStatus(val) {
-    var btn = document.getElementById('uvStatusBtn');
-    var lbl = document.getElementById('uvStatusLabel');
-    btn.className = 'status-btn ' + val;
-    lbl.textContent = val.charAt(0).toUpperCase() + val.slice(1);
-    document.getElementById('uvStatusDropdown').classList.remove('open');
-  }
-
-  // Close all dropdowns on outside click
-  document.addEventListener('click', function(e) {
-    if (!e.target.closest('.status-wrap')) {
-      document.querySelectorAll('.status-dropdown').forEach(function(dd) {
-        dd.classList.remove('open');
-      });
-    }
-    // Close autocomplete suggestions on outside click
-    if (!e.target.closest('.ca-autocomplete')) {
-      document.querySelectorAll('.ca-suggestions').forEach(function(s) {
-        s.classList.remove('open');
-      });
-    }
-  });
-
-  // ── CHANGE ASSIGNEE AUTOCOMPLETE ─────────────────────────────
-  var CA_USERS = [
-    { name: 'John Doe',      initials: 'JD' },
-    { name: 'Jane Smith',    initials: 'JS' },
-    { name: 'Sarah Connor',  initials: 'SC' },
-    { name: 'nucoreadmin',   initials: 'NA' },
-    { name: 'Counter Staff', initials: 'CS' },
-    { name: 'Ahmed Al Mansoori', initials: 'AA' },
-    { name: 'Priya Nair',    initials: 'PN' },
-    { name: 'Ravi Kumar',    initials: 'RK' }
-  ];
-  var caSelected = { av: '', uv: '' };
-  var caHighlight = { av: -1, uv: -1 };
-
-  function caGetFiltered(prefix) {
-    var q = prefix.trim().toLowerCase();
-    if (!q) return CA_USERS;
-    return CA_USERS.filter(function(u) { return u.name.toLowerCase().indexOf(q) !== -1; });
-  }
-
-  function caRender(prefix, users) {
-    var sug = document.getElementById(prefix + 'CaSuggestions');
-    sug.innerHTML = '';
-    caHighlight[prefix] = -1;
-    if (!users.length) {
-      sug.classList.remove('open');
-      return;
-    }
-    users.forEach(function(u, i) {
-      var item = document.createElement('div');
-      item.className = 'ca-sug-item';
-      item.innerHTML = '<div class=ca-avatar>' + u.initials + '</div>' + u.name;
-      item.addEventListener('mousedown', function(e) {
+  function buildSide(id) {
+    var sec = document.getElementById(id);
+    sidenav.innerHTML = '';
+    var t = document.createElement('div');
+    t.className = 'sn-title';
+    var SN = {'tab-automation': 'QA automation — topics', 'tab-migration': 'PHP 8.4 migration — topics', 'tab-prism': 'PRISM — topics', 'tab-aiworks': 'Team AI works — topics'};
+    t.textContent = SN[id] || 'Topics';
+    sidenav.appendChild(t);
+    Array.prototype.slice.call(sec.querySelectorAll('h2')).forEach(function (h) {
+      var a = document.createElement('a');
+      a.textContent = labelFor(h);
+      if (h.id === 'live-demo') a.className = 'demo-link';
+      a.href = '#' + h.id;
+      a.addEventListener('click', function (e) {
         e.preventDefault();
-        caPickUser(prefix, u.name);
+        h.scrollIntoView({ behavior: 'smooth' });
+        if (history.replaceState) history.replaceState(null, '', '#' + h.id);
+        setCurrent(h.id);
       });
-      sug.appendChild(item);
+      sidenav.appendChild(a);
     });
-    sug.classList.add('open');
+    initSpy(sec);
   }
-
-  function caFilter(prefix) {
-    var val = document.getElementById(prefix + 'CaInput').value;
-    var filtered = caGetFiltered(val);
-    caRender(prefix, filtered);
-  }
-
-  function caPickUser(prefix, name) {
-    document.getElementById(prefix + 'CaInput').value = name;
-    caSelected[prefix] = name;
-    document.getElementById(prefix + 'CaSuggestions').classList.remove('open');
-  }
-
-  function caKeydown(e, prefix) {
-    var sug = document.getElementById(prefix + 'CaSuggestions');
-    var items = sug.querySelectorAll('.ca-sug-item');
-    if (!sug.classList.contains('open') || !items.length) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      caHighlight[prefix] = Math.min(caHighlight[prefix] + 1, items.length - 1);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      caHighlight[prefix] = Math.max(caHighlight[prefix] - 1, 0);
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (caHighlight[prefix] >= 0) {
-        items[caHighlight[prefix]].dispatchEvent(new MouseEvent('mousedown'));
-      }
-      return;
-    } else if (e.key === 'Escape') {
-      sug.classList.remove('open');
-      return;
+  function showPart(id, anchorId) {
+    menus.forEach(function (m) { m.classList.toggle('active', m.dataset.part === id); });
+    parts.forEach(function (p) { p.classList.toggle('active', p.id === id); });
+    buildSide(id);
+    if (anchorId) {
+      var el = document.getElementById(anchorId);
+      if (el) { el.scrollIntoView(); setCurrent(anchorId); }
+      if (history.replaceState) history.replaceState(null, '', '#' + anchorId);
+    } else {
+      window.scrollTo(0, 0);
+      if (history.replaceState) history.replaceState(null, '', '#' + id);
     }
-    items.forEach(function(it, i) {
-      it.classList.toggle('active', i === caHighlight[prefix]);
+  }
+  menus.forEach(function (m) {
+    m.querySelector('button').addEventListener('click', function () { showPart(m.dataset.part); });
+  });
+
+  // initial view: hash routing, else QA automation front page
+  (function () {
+    var h = location.hash.slice(1);
+    if (h) {
+      var el = document.getElementById(h);
+      if (el) {
+        if (el.classList.contains('tab')) { showPart(h); return; }
+        var sec = el.closest ? el.closest('.tab') : null;
+        if (sec) { showPart(sec.id, h); return; }
+      }
+    }
+    buildSide('tab-automation');
+  })();
+
+  // ---- print support ----
+  var openedForPrint = [];
+  window.addEventListener('beforeprint', function () {
+    openedForPrint = Array.prototype.slice.call(document.querySelectorAll('details:not([open])'));
+    openedForPrint.forEach(function (d) { d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function () {
+    openedForPrint.forEach(function (d) { d.removeAttribute('open'); });
+    openedForPrint = [];
+  });
+
+  // ---- simulated live Playwright demo (terminal + interface view) ----
+  var demoLog = document.getElementById('demoLog');
+  var demoUrl = document.getElementById('demoUrl');
+  var demoScreen = document.getElementById('demoScreen');
+  var demoTimer = null;
+
+  var SCREENS = {
+    login: '<div class="mtitle">TRAACS — Sign in</div>' +
+      '<div class="mf"><span class="ml">Login Name</span><span class="mi" data-f="user"></span></div>' +
+      '<div class="mf"><span class="ml">Password</span><span class="mi" data-f="pass"></span></div>' +
+      '<div class="mf"><span class="ml">Company</span><span class="mi" data-f="company"></span></div>' +
+      '<span class="mbtn" data-f="btnLogin">Login</span>',
+    dash: '<div class="mtitle">TRAACS — Dashboard · DEMO TRAVEL LLC</div>' +
+      '<div class="dash"><div><b>12</b>Invoices today</div><div><b>3</b>Refunds pending</div>' +
+      '<div><b>8</b>Receipts today</div><div><b>2</b>Approvals waiting</div></div>',
+    sales: '<div class="mtitle">Manual Sale / Invoice</div>' +
+      '<div class="mf"><span class="ml">Doc Date</span><span class="mi" data-f="docdate"></span></div>' +
+      '<div class="mf"><span class="ml">Customer</span><span class="mi" data-f="cust"></span></div>' +
+      '<div class="mf"><span class="ml">Cost Centre</span><span class="mi" data-f="cc"></span></div>' +
+      '<div class="mf"><span class="ml">Department</span><span class="mi" data-f="dept"></span></div>' +
+      '<div class="mf"><span class="ml">Transaction Type</span><span class="mi" data-f="tt"></span></div>' +
+      '<div class="msect">Ticket tab</div>' +
+      '<div class="mgrid"><div class="mgh"><span>Ticket No</span><span>Issue Date</span><span>Fare</span></div>' +
+      '<div class="mgr"><span data-f="tkt"></span><span data-f="tissue"></span><span data-f="fare"></span></div></div>' +
+      '<span class="mbtn" data-f="btnSaveInv">Save Invoice</span>',
+    refund: '<div class="mtitle">Refund — against SI-104872</div>' +
+      '<div class="mf"><span class="ml">Doc Date</span><span class="mi" data-f="rdate"></span></div>' +
+      '<div class="mf"><span class="ml">Cost Centre</span><span class="mi" data-f="rcc"></span></div>' +
+      '<div class="mf"><span class="ml">Department</span><span class="mi" data-f="rdept"></span></div>' +
+      '<div class="mf"><span class="ml">Resp. Staff</span><span class="mi" data-f="rstaff"></span></div>' +
+      '<div class="mf"><span class="ml">Due Date</span><span class="mi" data-f="rdue"></span></div>' +
+      '<div class="msect">Coupons</div>' +
+      '<div class="mgrid"><div class="mgh"><span>Coupon</span><span>Refund Amt</span></div>' +
+      '<div class="mgr"><span data-f="cpn"></span><span data-f="cpnamt"></span></div></div>' +
+      '<div class="msect">Mode of Refund</div>' +
+      '<div class="mgrid"><div class="mgh"><span>Mode</span><span>Amount</span></div>' +
+      '<div class="mgr"><span data-f="apmode"></span><span data-f="apamt"></span></div></div>' +
+      '<span class="mbtn" data-f="btnSaveRfnd">Save Refund</span>',
+    receipt: '<div class="mtitle">Customer Receipt</div>' +
+      '<div class="mf"><span class="ml">Receipt Date</span><span class="mi" data-f="rcptdate"></span></div>' +
+      '<div class="mf"><span class="ml">Cost Centre</span><span class="mi" data-f="pcc"></span></div>' +
+      '<div class="mf"><span class="ml">Department</span><span class="mi" data-f="pdept"></span></div>' +
+      '<div class="msect">Party (credit)</div>' +
+      '<div class="mgrid"><div class="mgh"><span>Received From</span><span>Amount</span></div>' +
+      '<div class="mgr"><span data-f="pfrom"></span><span data-f="pamt"></span></div></div>' +
+      '<div class="msect">Mode — Cash (debit)</div>' +
+      '<div class="mgrid"><div class="mgh"><span>Cash A/c</span><span>Amount</span></div>' +
+      '<div class="mgr"><span data-f="cacc"></span><span data-f="camt"></span></div></div>' +
+      '<span class="mbtn" data-f="btnSaveRcpt">Save Receipt</span>'
+  };
+
+  function uiOp(op) {
+    if (!op) return;
+    if (op.scr) { demoUrl.textContent = op.url || ''; demoScreen.innerHTML = SCREENS[op.scr]; }
+    if (op.fill) op.fill.forEach(function (p) {
+      var el = demoScreen.querySelector('[data-f="' + p[0] + '"]');
+      if (el) { el.textContent = p[1]; el.classList.add('filled'); }
     });
-    if (caHighlight[prefix] >= 0) items[caHighlight[prefix]].scrollIntoView({ block: 'nearest' });
+    if (op.click) {
+      var b = demoScreen.querySelector('[data-f="' + op.click + '"]');
+      if (b) b.classList.add('clicked');
+    }
+    if (op.toast) {
+      var t = document.createElement('div');
+      t.className = 'mtoast'; t.textContent = op.toast;
+      demoScreen.appendChild(t);
+    }
   }
 
-  function caConfirm(prefix) {
-    var val = document.getElementById(prefix + 'CaInput').value.trim();
-    if (!val) { alert('Please select a user to assign.'); return; }
-    alert('Assignee changed to: ' + val);
-    // In real use: send AJAX call here
-  }
+  // [delayMs, cssClass, text, flowStart, flowPass, uiOp]
+  var DEMO = [
+    [0,    'hdr', 'TRAACS UI smoke — live agent run (simulated preview)', null, null, null],
+    [400,  'dim', 'mode: live agent (Claude ⇄ Playwright MCP) · target: https://dev-traacs.example · browser: chromium (headed)', null, null, null],
+    [500,  'hdr', '▶ TC-LOGIN-001 — valid login', 'LOGIN', null, null],
+    [500,  'act', 'goto login page → login.tpl rendered', null, null, {scr:'login', url:'https://dev-traacs.example/  ·  login.tpl'}],
+    [700,  'act', 'fill #txtLoginName · fill #txtPassword · select #cmbcompany = "DEMO TRAVEL LLC"', null, null, {fill:[['user','rohit.s'],['pass','••••••••'],['company','DEMO TRAVEL LLC']]}],
+    [600,  'act', 'click #btnLoginSubmit → POST /nucorelib/basic_users/loginajax', null, null, {click:'btnLogin'}],
+    [800,  'ok',  '200 OK · session established → dashboard · .loginError empty', null, null, {scr:'dash', url:'https://dev-traacs.example/index  ·  dashboard'}],
+    [400,  'ok',  '✓ TC-LOGIN-001 PASS (2.8s) · screenshot artifacts/run-01/01-login.png', null, 'LOGIN', null],
+    [800,  'hdr', '▶ TC-INV-001 — save minimal manual invoice', 'INVOICE', null, null],
+    [500,  'act', 'goto /traacs/basic_Sales_Sales/sales', null, null, {scr:'sales', url:'https://dev-traacs.example/traacs/basic_Sales_Sales/sales'}],
+    [600,  'act', 'set #txtSalesMasterDocDate = 02-07-2026', null, null, {fill:[['docdate','02-07-2026']]}],
+    [650,  'act', 'pick customer #txtSalesMasterPartyCode → "AL NOOR TRADING" (CUST-00214)', null, null, {fill:[['cust','CUST-00214 · AL NOOR TRADING']]}],
+    [650,  'act', 'select #cmbSalesMasterCostCentre · #cmbSalesMasterDepartment · #cmbTransactionType', null, null, {fill:[['cc','HEAD OFFICE'],['dept','TRAVEL'],['tt','B2C SALE']]}],
+    [750,  'act', 'open tab #liTabTicket → add ticket row: TKT 176-4402019 · issue 01-07-2026 · fare 1,850.00', null, null, {fill:[['tkt','176-4402019'],['tissue','01-07-2026'],['fare','1,850.00']]}],
+    [650,  'act', 'click #btnSaveSalesDetails → POST …/savesalesdetails', null, null, {click:'btnSaveInv'}],
+    [900,  'ok',  "response.strStatusPhpKey === 'SUCCESS'", null, null, null],
+    [400,  'ok',  '#invoiceMessage: "Invoice SI-104872 has been saved"', null, null, {toast:'✓ Invoice SI-104872 has been saved'}],
+    [400,  'ok',  '✓ TC-INV-001 PASS (9.4s) · captured doc# SI-104872', null, 'INVOICE', null],
+    [800,  'hdr', '▶ TC-RFND-001 — refund against SI-104872', 'REFUND', null, null],
+    [500,  'act', 'goto /traacs/basic_refund_refund/refund → load coupon TKT 176-4402019', null, null, {scr:'refund', url:'https://dev-traacs.example/traacs/basic_refund_refund/refund', fill:[['cpn','176-4402019']]}],
+    [650,  'act', 'set #txtRefundDocDate · #cmbRefundCostCentre · #cmbRefundDepartment', null, null, {fill:[['rdate','02-07-2026'],['rcc','HEAD OFFICE'],['rdept','TRAVEL']]}],
+    [650,  'act', 'set #txtResponsibleStaffName = "COUNTER 1" · due date 09-07-2026', null, null, {fill:[['rstaff','COUNTER 1'],['rdue','09-07-2026']]}],
+    [700,  'act', 'coupon row refund amount 1,850.00 · add Mode-of-Refund A/P = 1,850.00', null, null, {fill:[['cpnamt','1,850.00'],['apmode','A/P — SUPPLIER'],['apamt','1,850.00']]}],
+    [650,  'act', 'click #btnSaveRefund → POST …/saverefunddetails', null, null, {click:'btnSaveRfnd'}],
+    [900,  'ok',  "response.strMessagePhpKey === 'SUCCESS'", null, null, null],
+    [400,  'ok',  '#message: "Refund_has_been_saved" · #txtRefundDocNo = RF-20331', null, null, {toast:'✓ Refund RF-20331 has been saved'}],
+    [400,  'ok',  '✓ TC-RFND-001 PASS (11.2s) · captured doc# RF-20331', null, 'REFUND', null],
+    [800,  'hdr', '▶ TC-RCPT-001 — customer receipt (cash)', 'RECEIPT', null, null],
+    [500,  'act', 'goto /square/basic_receipt_receipt', null, null, {scr:'receipt', url:'https://dev-traacs.example/square/basic_receipt_receipt'}],
+    [600,  'act', 'set #txtReceiptDate · #cmbReceiptCostCenter · #cmbReceiptDepartment', null, null, {fill:[['rcptdate','02-07-2026'],['pcc','HEAD OFFICE'],['pdept','TRAVEL']]}],
+    [700,  'act', 'party line: "AL NOOR TRADING" · #txtPartyAmountInTransactionCurrency = 500.00', null, null, {fill:[['pfrom','AL NOOR TRADING'],['pamt','500.00']]}],
+    [700,  'act', 'cash mode: #txtReceiptCashAccountCode = CASH-01 · #txtCashAmountInTransactionCurrency = 500.00', null, null, {fill:[['cacc','CASH-01'],['camt','500.00']]}],
+    [650,  'act', 'click #btnSaveReceipt → POST …/savereceipt', null, null, {click:'btnSaveRcpt'}],
+    [900,  'ok',  "response.strMessagePhpKey == 'SUCCESS'", null, null, null],
+    [400,  'ok',  '#divMessageReceipt: "Receipt_has_been_saved" · doc# RV-88214', null, null, {toast:'✓ Receipt RV-88214 has been saved'}],
+    [400,  'ok',  '✓ TC-RCPT-001 PASS (8.1s) · captured doc# RV-88214', null, 'RECEIPT', null],
+    [800,  'hdr', '■ SUITE RESULT — 4/4 PASS (31.5s)', null, null, null],
+    [450,  'ok',  'specs emitted: tests/e2e/login.spec.js · invoice.spec.js · refund.spec.js · receipt.spec.js', null, null, null],
+    [400,  'dim', 'documents kept as evidence: SI-104872 · RF-20331 · RV-88214 (illustrative numbers)', null, null, null]
+  ];
 
-  // ── USER VIEW — DESCRIPTION EDIT ─────────────────────────────
-  function uvDescEdit() {
-    var view = document.getElementById('uvDescView');
-    var editArea = document.getElementById('uvDescEditArea');
-    var textarea = document.getElementById('uvDescTextarea');
-    var btn = document.getElementById('uvDescEditBtn');
-    textarea.value = view.innerText.trim();
-    view.style.display = 'none';
-    editArea.style.display = 'block';
-    btn.style.display = 'none';
-    textarea.focus();
+  function chip(flow) { return document.getElementById('chip-' + flow); }
+  function demoReset() {
+    if (demoTimer) { clearTimeout(demoTimer); demoTimer = null; }
+    demoLog.innerHTML = '<div class="dim">— press ▶ Run to start the simulated agent run —</div>';
+    demoUrl.textContent = 'about:blank';
+    demoScreen.innerHTML = '<div class="idle">Interface view — the screens appear here while the agent drives them.<br>Press ▶ Run.</div>';
+    ['LOGIN','INVOICE','REFUND','RECEIPT'].forEach(function (f) { chip(f).className = 'flow-chip'; });
   }
+  function demoRun() {
+    demoReset();
+    demoLog.innerHTML = '';
+    var i = 0;
+    function step() {
+      if (i >= DEMO.length) { demoTimer = null; return; }
+      var row = DEMO[i++];
+      var div = document.createElement('div');
+      div.className = row[1];
+      div.textContent = row[2];
+      demoLog.appendChild(div);
+      demoLog.scrollTop = demoLog.scrollHeight;
+      if (row[3]) chip(row[3]).className = 'flow-chip running';
+      if (row[4]) chip(row[4]).className = 'flow-chip pass';
+      uiOp(row[5]);
+      demoTimer = setTimeout(step, i < DEMO.length ? DEMO[i][0] : 0);
+    }
+    step();
+  }
+  document.getElementById('demoRun').addEventListener('click', demoRun);
+  document.getElementById('demoReset').addEventListener('click', demoReset);
+  if (location.search.indexOf('demo=auto') !== -1) demoRun();
+</script>
 
-  function uvDescSave() {
-    var view = document.getElementById('uvDescView');
-    var editArea = document.getElementById('uvDescEditArea');
-    var textarea = document.getElementById('uvDescTextarea');
-    var btn = document.getElementById('uvDescEditBtn');
-    var val = textarea.value.trim();
-    if (!val) { alert('Description cannot be empty.'); return; }
-    view.innerText = val;
-    view.style.display = 'block';
-    editArea.style.display = 'none';
-    btn.style.display = '';
-    // In real use: send AJAX call here
+<div id="chatFab" title="Ask a question about the plans">💬</div>
+<div id="chatPanel" role="dialog" aria-label="Plan Q&A chat">
+  <div class="ch-head">Ask about the plans <span class="sub2">instant answers from both plans</span><span id="chatClose">✕</span></div>
+  <div class="ch-msgs" id="chatMsgs"></div>
+  <div class="ch-sugg" id="chatSugg"></div>
+  <div class="ch-in">
+    <input id="chatInput" placeholder="Type a question… e.g. how long will it take?" autocomplete="off">
+    <button id="chatSend" type="button">Send</button>
+  </div>
+</div>
+<script>
+(function () {
+  // knowledge base: terms (single word = token match, phrase = substring), answer, target section
+  var KB = [
+    {t:['how long','timeline','duration','months','month','long','when finish'], a:'The migration is estimated at ~6 months with 3 developers + AI tools (range 4.5–8 months); ~9–12 months without AI. Phases overlap; the first checkpoint (GO/NO-GO) is at ~1 month.', g:{part:'tab-migration', idx:8}},
+    {t:['cost','effort','person-week','person week','budget','pw'], a:'Library remediation totals 39.1 person-weeks (Smarty 14 + PHPExcel 9 are the critical path). The only spend requested today is Phase 0: ~3–4 weeks of 1 developer. Big-ticket phases are funded only after Phase 0 is green.', g:{part:'tab-migration', idx:1}},
+    {t:['rewrite','laravel','symfony','replatform'], a:'No rewrite. 3.9M LOC / 2,815 controllers of working finance logic — a rewrite is multi-year and high-risk. We swap vendored Zend 1.10.6 for the maintained zf1-future fork (3 pw); the 3,297 files using Zend classes don’t change.', g:{part:'tab-migration', idx:4}},
+    {t:['zf1','zend','fork','zf1-future','framework'], a:'ZF1 stays. shardj/zf1-future 1.25 is a drop-in, community-maintained fork supporting PHP up to 8.4/8.5. Our 3 local patches get re-applied outside the vendor tree. Phase 0 proves this bet before any big spend.', g:{part:'tab-migration', idx:4}},
+    {t:['smarty','template','tpl','templates','screen engine'], a:'Smarty 2.6.22 is the single biggest cost (14 pw): it renders all 2,055 screens and is dead on PHP 8. Upgrade to Smarty 5, phased per module (traacs → square → nucore), scheduled last.', g:{part:'tab-migration', idx:5}},
+    {t:['excel','phpexcel','spreadsheet','spout','exports'], a:'PHPExcel 1.8.0 → PhpSpreadsheet across 559 files (9 pw, bulk-automated + manual edge cases), and box/spout → openspout for 171 writer-only files (3 pw). Phase 2, exit gate: all reports export correctly.', g:{part:'tab-migration', idx:5}},
+    {t:['major change','what breaks','breaking','php 8 change','changes in php'], a:'Nine major PHP 8.x changes hit this codebase — the two that matter most: == number↔string comparisons silently change results (889 finance sites), and old bundled libraries (Smarty 2, PHPExcel, PHPMailer 5, FPDI 1, TCPDF 6.0) are fatal at load. Full table with script-fixability per change:', g:{part:'tab-migration', idx:6}},
+    {t:['script','scripts','5.6','rector','automate','automated upgrade'], a:'The 5.6→7.4 jump was removed-function syntax — scriptable, and missed spots crashed loudly. 7.4→8.4 is mostly silent behavior changes (a script can find every ==, but not decide business intent) plus two whole-library API migrations. The mechanical part IS scripted (Rector, Phase 0–1).', g:{part:'tab-migration', idx:6}},
+    {t:['loose comparison','==','wrong amount','silent','finance risk','money risk','refund risk'], a:'PHP 8 changed 0 == "abc" from true to false — in tax/refund math that means wrong figures with no error. 889 literal comparisons in 67 finance files get senior hand-review; Refund.php is the worst (207 sites).', g:{part:'tab-migration', idx:7}},
+    {t:['phase','phases','milestone','schedule','gantt','roadmap'], a:'Six phases over ~6 months: 0 trial run (boots on 8.4, GO/NO-GO) → 1 load-time fatals → 2 Excel/export rebuild → 3 finance logic review → 4 Smarty per module → 5 regression & cutover. Each has a binary exit gate.', g:{part:'tab-migration', idx:8}},
+    {t:['phase 0','go/no-go','go no go','trial','boots','proof'], a:'Phase 0 = ~3–4 weeks, ~1 developer: stand up PHP 8.4, swap in zf1-future, re-apply 3 patches, boot the app. If green, the plan is de-risked and the budget is committed; if not, we lost weeks, not months.', g:{part:'tab-migration', idx:14}},
+    {t:['new work','parallel','freeze','during migration','new features','waves','business stop'], a:'Business does not stop. Production stays on 7.4; migration runs on its own SVN branch with weekly sync merges; dual-build CI flags 8.4-breaking commits the day they’re written; only the final 2–3 weeks are a critical-fixes-only freeze.', g:{part:'tab-migration', idx:9}},
+    {t:['coding rule','coding rules','new code','8.4-safe','guideline','write now'], a:'Seven 8.4-safe rules for new 7.4 code, effective now: === in money/status logic, ?? ’’ null guards, declared class properties, key checks, no new PHPExcel / Smarty-2-only syntax, cache via MemCachedManager, no removed constructs. CI enforces them from Phase 0.', g:{part:'tab-migration', idx:9}},
+    {t:['risk','risks','register','danger','worst'], a:'Top risks: #1 no test suite on 3.9M LOC (mitigated by the QA automation plan) and #2 silent == changes in finance math (senior review of all 889 sites). Nine risks total, each with a mitigation.', g:{part:'tab-migration', idx:10}},
+    {t:['team','dev a','dev b','dev c','who does','split','developers','3 devs'], a:'Dev A (senior): framework swap, Rector/CI, the finance == review. Dev B: export/print/integration libraries. Dev C: Smarty templates + front-end regression + the Playwright harness. Business users do UAT.', g:{part:'tab-migration', idx:12}},
+    {t:['ai','claude','copilot'], a:'AI compresses the mechanical + discovery work by ~⅓ (9–12 months → ~6): Rector transforms, code archaeology, checklists, drafting template fixes. Humans keep finance semantics, visual PDF/Excel checks, UAT and go-live judgment.', g:{part:'tab-migration', idx:11}},
+    {t:['do nothing','wait','postpone','not upgrade','stay on 7.4'], a:'PHP 7.4 has had no security fixes since Nov 2022 — on a finance system. Waiting adds CVE exposure, dying libraries, a shrinking hiring pool, and a bigger eventual jump. The cost never goes down.', g:{part:'tab-migration', idx:2}},
+    {t:['downtime','users notice','impact on users','behavior change','user impact'], a:'No functional changes: same screens, workflows and database. Cutover is rehearsed on staging with a 7.4-vs-8.4 parallel-run, and the old 7.4 container stays available as rollback.', g:{part:'tab-migration', idx:13}},
+    {t:['8.1','8.2','why 8.4','which version','one jump'], a:'The expensive breaking changes all arrived in PHP 8.0 — stepping 8.1→8.2→8.4 would repeat the costliest part (full manual regression) at every step. One jump, one regression cycle, longest support runway.', g:{part:'tab-migration', idx:2}},
+    {t:['test suite','no tests','tests','regression','validate','uat','qa'], a:'Three validation layers: the Playwright smoke suite (built in Phase 0, runs on both 7.4 and 8.4 builds), a staging parallel-run with output diffing, and business-user UAT. The suite then stays in CI permanently.', g:{id:'qa-migration'}},
+    {t:['management','approve','approval','decision','need from you','ask for'], a:'Two separate approvals: (1) Migration — Phase 0 only, ~3–4 weeks of 1 dev. (2) QA — the first build sprint of the smoke suite plus 3 open items: dev URL/credentials/company, test master data, and the keep-vs-cleanup policy.', g:{part:'tab-migration', idx:14}},
+    {t:['playwright','mcp','agent','smoke suite','ui automation'], a:'A Claude agent drives Playwright (v1.61, already installed) through the 4 money flows on the real UI, asserts the app’s real success signals, and emits a repeatable .spec.js per green flow — which then runs headless via npx playwright test.', g:{part:'tab-automation', idx:1}},
+    {t:['selenium','robot framework','why playwright'], a:'The saves are AJAX — Playwright auto-waits on element + network, avoiding the manual sleeps that make Selenium flaky on this jQuery/Smarty app. No end-of-life Python dependency, and it’s the stack the AI agent can drive via MCP.', g:{part:'tab-automation', idx:1}},
+    {t:['flows','scope','login','invoice','receipt','which screens','test cases','tc-'], a:'Round 1 covers the money path: Login → Manual Invoice save → Refund save → Customer Receipt save — happy paths + key negative cases (8 test cases). Out of scope this round: MFA, reports, group/auto-invoice, posting, print, e-invoice.', g:{part:'tab-automation', idx:5}},
+    {t:['master data','prerequisite','cash account','ticket stock','before run','dev db'], a:'Eight master-data items must exist in the dev DB or saves are rejected: active customer, cash/bank account, cost centre + department, transaction type, responsible staff, open financial year, a posted source invoice, and valid ticket stock.', g:{part:'tab-automation', idx:2}},
+    {t:['assertion','success key','selector','ajax','how verified'], a:'Each flow asserts the app’s real success contract — e.g. invoice: POST …/savesalesdetails must return strStatusPhpKey===’SUCCESS’ and #invoiceMessage must show “Invoice … has been saved”, with the document number captured.', g:{part:'tab-automation', idx:4}},
+    {t:['demo','watch','simulation','live run','see it'], a:'Open the Live Playwright demo (A10) and press ▶ Run — the left pane shows the interface being driven (fields filling, saves, success toasts) while the right pane shows the agent console. Add ?demo=auto to the URL to autoplay.', g:{id:'live-demo'}},
+    {t:['cleanup','teardown','delete docs','evidence','created documents'], a:'Dev-DB saves are real. Default policy: keep created documents as evidence, tagged by document number in the report — unless auto-cleanup is requested. This is one of the 3 open items awaiting confirmation.', g:{part:'tab-automation', idx:7}},
+    {t:['open item','open items','credentials','url','first run','confirm before'], a:'Three open items before the first run: (1) dev URL + credentials + company value, (2) a valid test customer / cash account / ticket stock, (3) keep created documents or auto-cleanup.', g:{part:'tab-automation', idx:8}},
+    {t:['separate','combined','two plans','independent','one plan'], a:'They are two separate plans with their own owners and approvals — QA automation (DRAFT, TEST_PLAN.md / UI_AUTOMATION_TEST_PLAN.html) and the PHP 8.4 migration (PHP8_MIGRATION_PLAN.html/.pdf/.md). The QA suite supports the migration but is not part of it.', g:null},
+    {t:['status','started','progress','built yet','current state'], a:'Migration: proposed, pending the Phase 0 go/no-go — nothing funded yet. QA automation: plan complete (DRAFT), build not started; repo traacs_test exists, specs/agent not yet built.', g:null},
+    {t:['prism','knowledge base','dossier','dossiers','ai enablement','indexes'], a:'PRISM is our AI-enablement layer: the TRAACS codebase captured as dossiers + 11 greppable indexes so Claude/Codex answer from verified knowledge, with gated BRD→plan→code→review workflows. Foundation 100% complete (16 Jun 2026); current work: buildability validation (48% baseline, all 776 gaps closed), token optimisation (−40% so far), adoption telemetry. See menu 3.', g:{part:'tab-prism', idx:0}},
+    {t:['ai works','team initiatives','arun','sreelakshmi','ramya','raniya','jishnu','aneeta','conflict guard','query library'], a:'Menu 4 lists the team AI initiatives: Arun — AI release file-replacement creator; Sreelakshmi — AI conflict guard catching same-file/module clashes before commit and release; Ramya — AI diagnosis of the stuck-merge script; Raniya — AI environment/version switcher scripts (permissions + ports handled); Jishnu — PHPUnit vs Pest framework evaluation; Aneeta — shared query library.', g:{part:'tab-aiworks', idx:0}},
+    {t:['hi','hello','hey'], a:'Hello! Ask me anything about the two plans — timeline, costs, risks, Smarty, the Playwright suite, test cases, what’s needed from management… or tap a suggestion below.', g:null}
+  ];
+  var OWNER = 'rohith.s@nucoreindia.com';
+  // Bridge is only tried on the owner's machine / LAN over http or file://.
+  // On a public host (GitHub Pages, any https site) BRIDGE stays null -> instant FAQ mode, no hanging.
+  var BRIDGE = null;
+  (function () {
+    if (location.protocol === 'file:') { BRIDGE = 'http://127.0.0.1:8799'; return; }
+    if (location.protocol === 'http:') {
+      var h = location.hostname;
+      if (h === 'localhost' || h === '127.0.0.1' || /^192\.168\./.test(h) || /^10\./.test(h) || /^172\.(1[6-9]|2[0-9]|3[01])\./.test(h)) {
+        BRIDGE = 'http://' + h + ':8799';
+      }
+    }
+  })();
+  var aiMode = BRIDGE ? null : false; // null = unknown, true = live Claude, false = FAQ
+  function setModeLabel() {
+    var el = document.querySelector('#chatPanel .sub2');
+    if (el) el.textContent = aiMode ? 'live Claude answers' : 'instant FAQ answers (Claude offline)';
   }
+  function checkBridge() {
+    if (!BRIDGE) { aiMode = false; setModeLabel(); return; }
+    var ctl = new AbortController(); var to = setTimeout(function () { ctl.abort(); }, 1500);
+    fetch(BRIDGE + '/health', { signal: ctl.signal })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { clearTimeout(to); aiMode = !!(j && j.ok); setModeLabel(); })
+      .catch(function () { clearTimeout(to); aiMode = false; setModeLabel(); });
+  }
+  var SUGGESTIONS = ['How long will it take?','Why not rewrite?','What breaks in PHP 8?','What is the Playwright plan?','Show me the demo','What do you need from management?'];
 
-  function uvDescCancel() {
-    var view = document.getElementById('uvDescView');
-    var editArea = document.getElementById('uvDescEditArea');
-    var btn = document.getElementById('uvDescEditBtn');
-    view.style.display = 'block';
-    editArea.style.display = 'none';
-    btn.style.display = '';
+  var fab = document.getElementById('chatFab'), panel = document.getElementById('chatPanel'),
+      msgs = document.getElementById('chatMsgs'), input = document.getElementById('chatInput'),
+      send = document.getElementById('chatSend'), sugg = document.getElementById('chatSugg');
+
+  function secH2s(part) {
+    var sec = document.getElementById(part);
+    if (sec) return sec.querySelectorAll('h2');
+    if (part === 'tab-migration' && !document.getElementById('tab-automation')) return document.querySelectorAll('h2');
+    return null;
   }
+  function resolveTarget(g) {
+    if (!g) return null;
+    if (g.id) return document.getElementById(g.id);
+    var hs = secH2s(g.part);
+    return hs && hs[g.idx] ? hs[g.idx] : null;
+  }
+  function companionNote(g) {
+    if (!g) return '';
+    if (g.part === 'tab-automation' || g.id === 'live-demo') return ' (See UI_AUTOMATION_TEST_PLAN.html.)';
+    return ' (See PHP8_MIGRATION_PLAN.html.)';
+  }
+  var tSeq = 0;
+  function gotoEl(el) {
+    if (!el.id) el.id = 'chat-t' + (++tSeq);
+    var sec = el.closest ? el.closest('.tab') : null;
+    if (sec && typeof showPart === 'function') showPart(sec.id, el.id);
+    else el.scrollIntoView({ behavior: 'smooth' });
+  }
+  function addMsg(cls, text, targetEl, label) {
+    var d = document.createElement('div');
+    d.className = 'ch-m ' + cls;
+    d.textContent = text;
+    if (targetEl) {
+      var a = document.createElement('a');
+      a.href = '#'; a.className = 'golink'; a.textContent = (label || 'Open the section') + ' →';
+      a.addEventListener('click', function (e) { e.preventDefault(); gotoEl(targetEl); });
+      d.appendChild(document.createElement('br'));
+      d.appendChild(a);
+    }
+    msgs.appendChild(d);
+    msgs.scrollTop = msgs.scrollHeight;
+    return d;
+  }
+  function addMailto(q) {
+    var d = addMsg('bot', 'I don’t have that in the two plans. Send it to the plan owner — your question is pre-filled:');
+    var a = document.createElement('a');
+    a.className = 'golink';
+    a.href = 'mailto:' + OWNER + '?subject=' + encodeURIComponent('Question — TRAACS PHP 8.4 / QA automation plans') + '&body=' + encodeURIComponent(q);
+    a.textContent = '✉ Email ' + OWNER + ' →';
+    d.appendChild(document.createElement('br'));
+    d.appendChild(a);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+  function tokens(str) { return str.toLowerCase().replace(/[^a-z0-9.=\/ +-]/g, ' ').split(/\s+/).filter(Boolean); }
+  function answer(q) {
+    var ql = ' ' + q.toLowerCase() + ' ', tk = tokens(q);
+    var best = null, bestScore = 0;
+    KB.forEach(function (e) {
+      var score = 0;
+      e.t.forEach(function (term) {
+        if (term.indexOf(' ') !== -1 || term.length > 12) { if (ql.indexOf(term) !== -1) score += 3; }
+        else if (tk.indexOf(term) !== -1) score += term.length > 3 ? 2 : 1;
+      });
+      if (score > bestScore) { bestScore = score; best = e; }
+    });
+    if (!best || bestScore === 0) { addMailto(q); return; }
+    var el = resolveTarget(best.g);
+    addMsg('bot', best.a + (el ? '' : companionNote(best.g)), el);
+  }
+  function askClaude(q) {
+    var typing = addMsg('bot', '\u2026 thinking (Claude)');
+    var ctl = new AbortController(); var to = setTimeout(function () { ctl.abort(); }, 30000);
+    fetch(BRIDGE + '/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q: q }), signal: ctl.signal })
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+      .then(function (j) {
+        clearTimeout(to); typing.remove();
+        if (j && j.a) addMsg('bot', j.a);
+        else throw new Error('empty');
+      })
+      .catch(function () {
+        clearTimeout(to); typing.remove();
+        aiMode = false; setModeLabel();
+        answer(q);
+      });
+  }
+  function submit(q) {
+    q = (q || input.value).trim();
+    if (!q) return;
+    addMsg('user', q);
+    input.value = '';
+    if (aiMode) askClaude(q);
+    else setTimeout(function () { answer(q); }, 250);
+  }
+  fab.addEventListener('click', function () {
+    panel.classList.toggle('openc');
+    if (panel.classList.contains('openc') && !msgs.childElementCount) {
+      addMsg('bot', 'Hi! I answer from the two plans — the PHP 8.4 migration and the Playwright QA automation. Ask anything, or tap a suggestion.');
+    }
+    if (aiMode === null) checkBridge(); else setModeLabel();
+    input.focus();
+  });
+  document.getElementById('chatClose').addEventListener('click', function () { panel.classList.remove('openc'); });
+  send.addEventListener('click', function () { submit(); });
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(); });
+  SUGGESTIONS.forEach(function (t) {
+    var c = document.createElement('span');
+    c.textContent = t;
+    c.addEventListener('click', function () { submit(t); });
+    sugg.appendChild(c);
+  });
+})();
 </script>
 </body>
 </html>
